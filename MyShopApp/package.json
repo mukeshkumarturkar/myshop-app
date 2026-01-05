@@ -9,7 +9,7 @@
     "web": "expo start --web",
     "build": "eas build",
     "preview": "eas build --platform android --local",
-    "vercel-build": "expo export --platform web --output-dir .expo-output",
+    "vercel-build": "EXPO_STATIC_RENDERING=0 expo export --platform web --output-dir .expo-output",
     "web-export": "expo export --platform web",
     "lint": "expo lint"
   },
