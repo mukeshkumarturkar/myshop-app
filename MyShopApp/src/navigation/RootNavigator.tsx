@@ -22,13 +22,14 @@ const ShopStack = createNativeStackNavigator();
 // Auth Stack
 const AuthStack = () => (
   <Stack.Navigator
+    initialRouteName="SignIn"
     screenOptions={{
       headerShown: false,
       animationEnabled: true,
     }}
   >
-    <Stack.Screen name="SignUp" component={SignUpScreen} />
     <Stack.Screen name="SignIn" component={SignInScreen} />
+    <Stack.Screen name="SignUp" component={SignUpScreen} />
   </Stack.Navigator>
 );
 
@@ -129,4 +130,3 @@ const RootNavigator = () => {
 };
 
 export default RootNavigator;
-

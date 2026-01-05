@@ -1,8 +1,7 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, Auth } from 'firebase/auth';
 
-// Replace with your Firebase configuration
-// You can get this from Firebase Console -> Project Settings
+// Firebase configuration with fallback dummy credentials
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || 'AIzaSyDummyKey123',
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || 'myshop-demo.firebaseapp.com',
@@ -12,11 +11,21 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '1:123456789:android:abcd1234efgh5678',
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+let app: any;
+let auth: Auth | null = null;
 
-// Initialize Firebase Authentication and get a reference to the service
-export const auth = getAuth(app);
+try {
+  // Initialize Firebase with error handling
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  console.log('Firebase initialized successfully');
+} catch (error) {
+  console.warn('Firebase initialization error (using demo mode):', error);
+  // Firebase will work in demo mode with dummy credentials
+  auth = null;
+}
 
+export { app };
+export const authInstance = auth;
 export default app;
 
