@@ -39,7 +39,8 @@
     },
     "web": {
       "output": "server",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "staticRenderingHtmlPath": false
     },
     "plugins": [
       [
