@@ -11,26 +11,33 @@ export async function getSSRConfig() {
 }
 
 export default function App() {
-  console.log('🔴 App.tsx: App component rendering');
+  console.log('🔴 App.tsx: App component function called');
 
   useEffect(() => {
-    console.log('🔴 App.tsx: useEffect hook mounted');
+    console.log('🔴 App.tsx: useEffect hook mounted - App is initialized!');
 
-    // Show alert that app has started
-    const alertMsg = 'MyShop App Started Successfully!\n\nHomePage should be rendering now...';
-    console.warn(alertMsg);
+    // Try to get the root element
+    const rootDiv = document.getElementById('root');
+    console.log('🔴 App.tsx: Root div element:', rootDiv ? 'FOUND ✓' : 'NOT FOUND ✗');
+    console.log('🔴 App.tsx: Root div classes:', rootDiv?.className);
+    console.log('🔴 App.tsx: Root div parent:', rootDiv?.parentElement?.tagName);
   }, []);
 
-  // Fallback render with error handling
   try {
     console.log('🔴 App.tsx: About to render HomePage component');
+
+    const homePage = <HomePage />;
+    console.log('🔴 App.tsx: HomePage JSX created successfully');
+
     return (
-      <div style={{ width: '100%', height: '100vh', overflow: 'hidden' }}>
-        <HomePage />
+      <div style={{ width: '100%', height: '100%', display: 'flex' }}>
+        {homePage}
       </div>
     );
   } catch (error) {
     console.error('🔴 App.tsx: ERROR rendering HomePage:', error);
+    console.error('🔴 App.tsx: Error stack:', error instanceof Error ? error.stack : 'N/A');
+
     return (
       <div style={{
         width: '100vw',
@@ -41,15 +48,19 @@ export default function App() {
         justifyContent: 'center',
         backgroundColor: '#fff',
         fontFamily: 'Arial, sans-serif',
+        color: '#000',
       }}>
-        <h1 style={{ color: 'red' }}>❌ Error Loading App</h1>
-        <p>{String(error)}</p>
+        <h1 style={{ color: 'red' }}>❌ Error in App Component</h1>
+        <p style={{ fontSize: '16px', maxWidth: '600px', wordWrap: 'break-word' }}>
+          {String(error)}
+        </p>
         <pre style={{
           backgroundColor: '#f0f0f0',
           padding: '20px',
           borderRadius: '5px',
           maxWidth: '600px',
           overflow: 'auto',
+          fontSize: '12px',
         }}>
           {error instanceof Error ? error.stack : String(error)}
         </pre>

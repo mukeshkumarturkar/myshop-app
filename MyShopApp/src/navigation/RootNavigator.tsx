@@ -5,10 +5,13 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
+import linking from '../config/linking';
 
+// ...existing imports...
 // Screens
 import SignUpScreen from '../screens/SignUpScreen';
 import SignInScreen from '../screens/SignInScreen';
+import HomePage from '../screens/HomePage';
 import ManageShopScreen from '../screens/ManageShopScreen';
 import CatalogListScreen from '../screens/CatalogListScreen';
 import CatalogDetailScreen from '../screens/CatalogDetailScreen';
@@ -22,12 +25,13 @@ const ShopStack = createNativeStackNavigator();
 // Auth Stack
 const AuthStack = () => (
   <Stack.Navigator
-    initialRouteName="SignIn"
+    initialRouteName="Home"
     screenOptions={{
       headerShown: false,
       animationEnabled: true,
     }}
   >
+    <Stack.Screen name="Home" component={HomePage} />
     <Stack.Screen name="SignIn" component={SignInScreen} />
     <Stack.Screen name="SignUp" component={SignUpScreen} />
   </Stack.Navigator>
@@ -104,9 +108,14 @@ const MainApp = () => (
 const RootNavigator = () => {
   const isSignedIn = useSelector((state: RootState) => state.auth.isSignedIn);
 
+  console.log('RootNavigator rendering, isSignedIn:', isSignedIn);
+
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator
+        screenOptions={{ headerShown: false }}
+        initialRouteName={isSignedIn ? 'MainApp' : 'Auth'}
+      >
         {isSignedIn ? (
           <Stack.Screen
             name="MainApp"

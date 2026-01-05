@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "myshopapp",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "description": "Shop management app for managing catalogs and QR codes",
     "owner": "myshop",
     "extra": {
