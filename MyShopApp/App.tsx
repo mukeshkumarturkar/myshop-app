@@ -7,6 +7,13 @@ import { setUser, logout } from '../src/store/authSlice';
 import RootNavigator from '../src/navigation/RootNavigator';
 import { RootState } from '../src/store';
 
+// Disable static rendering for web build
+export async function getSSRConfig() {
+  return {
+    defer: true,
+  };
+}
+
 export default function App() {
   const dispatch = useDispatch();
   const [loading, setLoading] = React.useState(true);
