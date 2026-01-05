@@ -1,0 +1,985 @@
+openapi: 3.0.0
+info:
+  title: Catalogue Service API
+  description: |
+    Complete REST API for Shop and Catalog management with QR code generation.
+    This API provides endpoints to manage shops, catalog items, and generate QR codes
+    for mobile access to shop menus with real-time pricing.
+  version: 1.0.0
+  contact:
+    name: Catalogue Service Team
+    url: https://api.soanch.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.soanch.com
+    description: Production Server
+  - url: http://localhost:8080
+    description: Local Development Server
+
+tags:
+  - name: Shop
+    description: Shop CRUD operations and management
+  - name: Shop-QR
+    description: QR code generation and retrieval for shops
+  - name: Catalog
+    description: Catalog item management and search
+
+paths:
+  /api/shops:
+    post:
+      tags:
+        - Shop
+      summary: Create a new shop
+      description: Creates a new shop with theme configuration
+      operationId: createShop
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShopCreate'
+            examples:
+              shop:
+                summary: Pizza Shop Example
+                value:
+                  name: "Pizza Palace"
+                  address: "123 Main St, New York, NY"
+                  owner: "John Doe"
+                  theme:
+                    colors:
+                      primary: "#FF6B6B"
+                      secondary: "#FFFFFF"
+                    menu: "Italian pizza, pasta, and desserts"
+                    lookAndFeel: "Modern and cozy Italian restaurant"
+                    logo: "pizza-icon.png"
+      responses:
+        '201':
+          description: Shop created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shop'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      tags:
+        - Shop
+      summary: Get all shops
+      description: Retrieve all shops from the database
+      operationId: getAllShops
+      responses:
+        '200':
+          description: List of all shops
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Shop'
+
+    delete:
+      tags:
+        - Shop
+      summary: Delete all shops
+      description: Delete all shops from the database (use with caution!)
+      operationId: deleteAllShops
+      responses:
+        '204':
+          description: All shops deleted successfully
+
+  /api/shops/{id}:
+    get:
+      tags:
+        - Shop
+      summary: Get shop by ID
+      description: Retrieve a specific shop by its ID
+      operationId: getShopById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Shop ID (MongoDB ObjectId)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Shop found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shop'
+        '404':
+          description: Shop not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags:
+        - Shop
+      summary: Update shop
+      description: Update shop details (partial or full update)
+      operationId: updateShop
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Shop ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShopUpdate'
+      responses:
+        '200':
+          description: Shop updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shop'
+        '404':
+          description: Shop not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Shop
+      summary: Delete shop
+      description: Delete a specific shop by ID
+      operationId: deleteShop
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Shop ID
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Shop deleted successfully
+        '404':
+          description: Shop not found
+
+  /api/shops/search/name:
+    get:
+      tags:
+        - Shop
+      summary: Search shops by name
+      description: Search shops by name (case-sensitive)
+      operationId: getShopsByName
+      parameters:
+        - name: name
+          in: query
+          required: true
+          description: Shop name to search
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of matching shops
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Shop'
+
+  /api/shops/search/owner:
+    get:
+      tags:
+        - Shop
+      summary: Search shops by owner
+      description: Get all shops by owner name
+      operationId: getShopsByOwner
+      parameters:
+        - name: owner
+          in: query
+          required: true
+          description: Owner name to search
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of shops by owner
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Shop'
+
+  /api/shops/search/address:
+    get:
+      tags:
+        - Shop
+      summary: Search shops by address
+      description: Search shops by address (partial match)
+      operationId: getShopsByAddress
+      parameters:
+        - name: address
+          in: query
+          required: true
+          description: Address substring to search
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of shops matching address
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Shop'
+
+  /api/shops/{id}/menus:
+    get:
+      tags:
+        - Shop
+      summary: Get shop menu
+      description: Get shop details with all catalog items (today's menu with real-time pricing)
+      operationId: getShopMenu
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Shop ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Shop menu with catalog items
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopMenu'
+        '404':
+          description: Shop not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/shops/{id}/generate-qr:
+    post:
+      tags:
+        - Shop-QR
+      summary: Generate QR code for shop
+      description: Generate and store QR code for shop menu. QR code points to https://myshop.soanch.com/web-menu?shopid={shopId}
+      operationId: generateQRCode
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Shop ID
+          schema:
+            type: string
+        - name: domain
+          in: query
+          required: false
+          description: Domain for QR code URL
+          schema:
+            type: string
+            default: myshop.soanch.com
+      responses:
+        '200':
+          description: QR code generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QRCodeResponse'
+        '404':
+          description: Shop not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Error generating QR code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/shops/{id}/qr:
+    get:
+      tags:
+        - Shop-QR
+      summary: Get QR code for shop
+      description: Retrieve stored QR code for a shop
+      operationId: getQRCode
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Shop ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: QR code found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QRCodeResponse'
+        '404':
+          description: QR code not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/shops/qr/list:
+    get:
+      tags:
+        - Shop-QR
+      summary: List all QR codes
+      description: Get all shops that have generated QR codes
+      operationId: getAllQRCodes
+      responses:
+        '200':
+          description: List of shops with QR codes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QRCodeResponse'
+
+  /api/catalogs:
+    get:
+      tags:
+        - Catalog
+      summary: Get all catalogs
+      description: Retrieve all catalog items from all shops
+      operationId: getAllCatalogs
+      responses:
+        '200':
+          description: List of all catalog items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Catalog'
+
+    post:
+      tags:
+        - Catalog
+      summary: Create catalog item
+      description: Create a new catalog item
+      operationId: createCatalog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CatalogCreate'
+      responses:
+        '201':
+          description: Catalog item created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Catalog'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/catalogs/{id}:
+    get:
+      tags:
+        - Catalog
+      summary: Get catalog by ID
+      description: Get a specific catalog item by ID
+      operationId: getCatalogById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Catalog ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Catalog item found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Catalog'
+        '404':
+          description: Catalog not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags:
+        - Catalog
+      summary: Update catalog
+      description: Update a catalog item
+      operationId: updateCatalog
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Catalog ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CatalogUpdate'
+      responses:
+        '200':
+          description: Catalog updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Catalog'
+        '404':
+          description: Catalog not found
+
+    delete:
+      tags:
+        - Catalog
+      summary: Delete catalog
+      description: Delete a catalog item
+      operationId: deleteCatalog
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Catalog ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Catalog deleted
+        '404':
+          description: Catalog not found
+
+  /api/catalogs/shop/{shopId}:
+    get:
+      tags:
+        - Catalog
+      summary: Get catalogs by shop
+      description: Get all catalogs for a specific shop
+      operationId: getCatalogsByShopId
+      parameters:
+        - name: shopId
+          in: path
+          required: true
+          description: Shop ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of catalogs for shop
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Catalog'
+
+  /api/catalogs/category/{category}:
+    get:
+      tags:
+        - Catalog
+      summary: Get catalogs by category
+      description: Get all catalogs in a specific category
+      operationId: getCatalogsByCategory
+      parameters:
+        - name: category
+          in: path
+          required: true
+          description: Category name
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of catalogs in category
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Catalog'
+
+  /api/catalogs/shop/{shopId}/category/{category}:
+    get:
+      tags:
+        - Catalog
+      summary: Get catalogs by shop and category
+      description: Get catalogs for a specific shop and category
+      operationId: getCatalogsByShopAndCategory
+      parameters:
+        - name: shopId
+          in: path
+          required: true
+          description: Shop ID
+          schema:
+            type: string
+        - name: category
+          in: path
+          required: true
+          description: Category name
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of catalogs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Catalog'
+
+  /api/catalogs/price-range:
+    get:
+      tags:
+        - Catalog
+      summary: Get catalogs by price range
+      description: Get catalogs within a price range for a shop
+      operationId: getCatalogsByPriceRange
+      parameters:
+        - name: shopId
+          in: query
+          required: true
+          description: Shop ID
+          schema:
+            type: string
+        - name: minPrice
+          in: query
+          required: true
+          description: Minimum price
+          schema:
+            type: number
+            format: double
+        - name: maxPrice
+          in: query
+          required: true
+          description: Maximum price
+          schema:
+            type: number
+            format: double
+      responses:
+        '200':
+          description: List of catalogs within price range
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Catalog'
+
+  /api/catalogs/available/{shopId}:
+    get:
+      tags:
+        - Catalog
+      summary: Get available catalogs
+      description: Get only available catalog items for a shop
+      operationId: getAvailableCatalogs
+      parameters:
+        - name: shopId
+          in: path
+          required: true
+          description: Shop ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of available catalogs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Catalog'
+
+  /api/catalogs/{id}/status:
+    patch:
+      tags:
+        - Catalog
+      summary: Update catalog status
+      description: Update the status of a catalog item
+      operationId: updateCatalogStatus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Catalog ID
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: true
+          description: New status (ACTIVE, INACTIVE, DISCONTINUED)
+          schema:
+            type: string
+            enum:
+              - ACTIVE
+              - INACTIVE
+              - DISCONTINUED
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Catalog'
+        '404':
+          description: Catalog not found
+
+components:
+  schemas:
+    Shop:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: MongoDB ObjectId
+          example: "6958fbaac7c72a28f87b07ef"
+        name:
+          type: string
+          description: Shop name
+          example: "Pizza Palace"
+        address:
+          type: string
+          description: Shop address
+          example: "123 Main St, New York, NY"
+        owner:
+          type: string
+          description: Shop owner name
+          example: "John Doe"
+        email:
+          type: string
+          description: Shop email address
+          example: "shop@example.com"
+        mobile_country_code:
+          type: string
+          description: Mobile country code (without +)
+          example: "91"
+        mobile_number:
+          type: string
+          description: Mobile number (without country code)
+          example: "9876543210"
+        theme:
+          $ref: '#/components/schemas/Theme'
+        qr_code:
+          type: string
+          description: QR code as Base64 PNG image
+          example: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg..."
+        qr_code_url:
+          type: string
+          description: QR code URL
+          example: "https://myshop.soanch.com/web-menu?shopid=6958fbaac7c72a28f87b07ef"
+
+    ShopCreate:
+      type: object
+      required:
+        - name
+        - address
+        - owner
+      properties:
+        name:
+          type: string
+          example: "Pizza Palace"
+        address:
+          type: string
+          example: "123 Main St, New York, NY"
+        owner:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          example: "shop@example.com"
+        mobile_country_code:
+          type: string
+          example: "91"
+        mobile_number:
+          type: string
+          example: "9876543210"
+        theme:
+          $ref: '#/components/schemas/Theme'
+
+    ShopUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        owner:
+          type: string
+        email:
+          type: string
+        mobile_country_code:
+          type: string
+        mobile_number:
+          type: string
+        theme:
+          $ref: '#/components/schemas/Theme'
+
+    Theme:
+      type: object
+      description: Shop theme configuration with colors, menu, and appearance
+      properties:
+        colors:
+          type: object
+          properties:
+            primary:
+              type: string
+              example: "#FF6B6B"
+            secondary:
+              type: string
+              example: "#FFFFFF"
+        menu:
+          type: string
+          example: "Italian pizza, pasta, and desserts"
+        lookAndFeel:
+          type: string
+          example: "Modern and cozy Italian restaurant"
+        logo:
+          type: string
+          example: "pizza-icon.png"
+
+    Catalog:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Catalog ID
+        name:
+          type: string
+          description: Item name
+          example: "Margherita Pizza"
+        description:
+          type: string
+          description: Item description
+        category:
+          type: string
+          description: Item category
+          example: "Pizzas"
+        shopId:
+          type: string
+          description: Shop ID this item belongs to
+        unit:
+          type: string
+          description: Unit of measurement
+          example: "Per Piece"
+        price:
+          $ref: '#/components/schemas/Price'
+        availability:
+          $ref: '#/components/schemas/Availability'
+        stock:
+          $ref: '#/components/schemas/Stock'
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - DISCONTINUED
+          example: "ACTIVE"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          description: Additional metadata like spice level, vegetarian status, etc.
+
+    CatalogCreate:
+      type: object
+      required:
+        - name
+        - category
+        - shopId
+        - unit
+      properties:
+        name:
+          type: string
+          example: "Margherita Pizza"
+        description:
+          type: string
+        category:
+          type: string
+          example: "Pizzas"
+        shopId:
+          type: string
+        unit:
+          type: string
+          example: "Per Piece"
+        price:
+          $ref: '#/components/schemas/Price'
+        availability:
+          $ref: '#/components/schemas/Availability'
+        stock:
+          $ref: '#/components/schemas/Stock'
+        status:
+          type: string
+          default: "ACTIVE"
+        metadata:
+          type: object
+
+    CatalogUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          $ref: '#/components/schemas/Price'
+        availability:
+          $ref: '#/components/schemas/Availability'
+        stock:
+          $ref: '#/components/schemas/Stock'
+
+    Price:
+      type: object
+      properties:
+        currency:
+          type: string
+          example: "Rupees"
+        value:
+          type: number
+          format: double
+          example: 299
+        discountPercentage:
+          type: number
+          format: double
+          example: 10
+        discountedPrice:
+          type: number
+          format: double
+          example: 269.1
+
+    Availability:
+      type: object
+      properties:
+        isAvailable:
+          type: boolean
+          example: true
+        startTime:
+          type: string
+          pattern: "HH:mm"
+          example: "11:00"
+        endTime:
+          type: string
+          pattern: "HH:mm"
+          example: "23:00"
+        availableDays:
+          type: array
+          items:
+            type: string
+          example: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        seasonalAvailable:
+          type: boolean
+        season:
+          type: string
+          example: "All Season"
+
+    Stock:
+      type: object
+      properties:
+        quantity:
+          type: integer
+          example: 50
+        unit:
+          type: string
+          example: "Pieces"
+        reorderLevel:
+          type: integer
+          example: 10
+
+    ShopMenu:
+      type: object
+      properties:
+        shopId:
+          type: string
+        shopName:
+          type: string
+        address:
+          type: string
+        owner:
+          type: string
+        totalItems:
+          type: integer
+        fetchedAt:
+          type: string
+          format: date-time
+        catalogs:
+          type: array
+          items:
+            $ref: '#/components/schemas/Catalog'
+
+    QRCodeResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        message:
+          type: string
+          example: "QR code generated successfully"
+        shopId:
+          type: string
+        shopName:
+          type: string
+        qrCodeUrl:
+          type: string
+          description: URL encoded in QR code
+          example: "https://myshop.soanch.com/web-menu?shopid=6958fbaac7c72a28f87b07ef"
+        qrCode:
+          type: string
+          description: Base64 encoded PNG image
+          example: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg..."
+
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "error"
+        message:
+          type: string
+          example: "Resource not found"
+        details:
+          type: string
+          example: "No shop found with ID: 123"
+
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: Basic HTTP authentication (currently not implemented)
+
+security: []
+# Security is optional - endpoints are currently open to all
+
