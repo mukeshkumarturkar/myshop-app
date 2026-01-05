@@ -1,83 +1,63 @@
 import React, { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { onAuthStateChanged } from 'firebase/auth';
-import { authInstance } from './src/config/firebase';
-import { setUser, logout } from './src/store/authSlice';
-import RootNavigator from './src/navigation/RootNavigator';
-import { RootState } from '../src/store';
+import HomePage from './src/screens/HomePage';
 
-// Disable static rendering for web build
+console.log('🔴 App.tsx: Importing HomePage...');
+
 export async function getSSRConfig() {
+  console.log('🔴 App.tsx: getSSRConfig() called');
   return {
     defer: true,
   };
 }
 
 export default function App() {
-  const dispatch = useDispatch();
-  const [loading, setLoading] = React.useState(true);
-  const [firebaseMissing, setFirebaseMissing] = React.useState(false);
+  console.log('🔴 App.tsx: App component rendering');
 
   useEffect(() => {
-    // If Firebase is not initialized, skip auth check and show fallback
-    if (!authInstance) {
-      setFirebaseMissing(true);
-      setLoading(false);
-      return;
-    }
+    console.log('🔴 App.tsx: useEffect hook mounted');
 
-    // Check Firebase authentication state
-    const unsubscribe = onAuthStateChanged(authInstance, async (firebaseUser) => {
-      try {
-        if (firebaseUser) {
-          // User is signed in
-          const displayName = await AsyncStorage.getItem('userDisplayName') ||
-                            firebaseUser.displayName ||
-                            'User';
+    // Show alert that app has started
+    const alertMsg = 'MyShop App Started Successfully!\n\nHomePage should be rendering now...';
+    console.warn(alertMsg);
+  }, []);
 
-          dispatch(
-            setUser({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              displayName: displayName,
-            })
-          );
-        } else {
-          // User is signed out
-          dispatch(logout());
-        }
-      } catch (error) {
-        console.error('Auth state error:', error);
-        dispatch(logout());
-      } finally {
-        setLoading(false);
-      }
-    });
-
-    return unsubscribe;
-  }, [dispatch]);
-
-  if (loading) {
-    // Show a visible loading indicator
+  // Fallback render with error handling
+  try {
+    console.log('🔴 App.tsx: About to render HomePage component');
     return (
-      <div style={{width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: '#666'}}>
-        Loading MyShop App...
+      <div style={{ width: '100%', height: '100vh', overflow: 'hidden' }}>
+        <HomePage />
+      </div>
+    );
+  } catch (error) {
+    console.error('🔴 App.tsx: ERROR rendering HomePage:', error);
+    return (
+      <div style={{
+        width: '100vw',
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#fff',
+        fontFamily: 'Arial, sans-serif',
+      }}>
+        <h1 style={{ color: 'red' }}>❌ Error Loading App</h1>
+        <p>{String(error)}</p>
+        <pre style={{
+          backgroundColor: '#f0f0f0',
+          padding: '20px',
+          borderRadius: '5px',
+          maxWidth: '600px',
+          overflow: 'auto',
+        }}>
+          {error instanceof Error ? error.stack : String(error)}
+        </pre>
+        <p style={{ color: '#999', marginTop: '20px', fontSize: '12px' }}>
+          Check browser console (F12) for more details
+        </p>
       </div>
     );
   }
-
-  if (firebaseMissing) {
-    // Show a visible error if Firebase is not configured
-    return (
-      <div style={{width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', fontSize: 20, color: '#b00', textAlign: 'center'}}>
-        <div>⚠️ Firebase is not configured.<br/>Please add your Firebase credentials to run the app fully.</div>
-        <div style={{marginTop: 16, color: '#555', fontSize: 16}}>
-          The app is running in demo mode.<br/>Some features may be unavailable.
-        </div>
-      </div>
-    );
-  }
-
-  return <RootNavigator />;
 }
+
