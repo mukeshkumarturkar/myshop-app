@@ -12,8 +12,6 @@ import {
   Platform,
 } from 'react-native';
 import { useDispatch } from 'react-redux';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth } from '../config/firebase';
 import { apiClient } from '../services/api';
 import { setUser, setError } from '../store/authSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -30,6 +28,10 @@ const SignUpScreen = ({ navigation }: any) => {
     address: '',
     mobileCountryCode: '91',
     mobileNumber: '',
+    primaryColor: '#FF6B6B',
+    secondaryColor: '#FFFFFF',
+    menuDescription: '',
+    lookAndFeel: '',
   });
 
   const handleInputChange = (field: string, value: string) => {
@@ -76,19 +78,9 @@ const SignUpScreen = ({ navigation }: any) => {
 
     setLoading(true);
     try {
-      // 1. Create Firebase user
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        formData.email,
-        formData.password
-      );
+      console.log('🔴 SignUp: Starting shop creation...');
 
-      // 2. Update Firebase user profile
-      await updateProfile(userCredential.user, {
-        displayName: formData.ownerName,
-      });
-
-      // 3. Create shop via API
+      // 1. Create shop via API
       const shopResponse = await apiClient.createShop({
         name: formData.shopName,
         address: formData.address,
@@ -98,30 +90,49 @@ const SignUpScreen = ({ navigation }: any) => {
         mobile_number: formData.mobileNumber,
         theme: {
           colors: {
-            primary: '#6C63FF',
-            secondary: '#FFFFFF',
+            primary: formData.primaryColor,
+            secondary: formData.secondaryColor,
           },
-          menu: 'Menu',
-          lookAndFeel: 'Modern',
+          menu: formData.menuDescription,
+          lookAndFeel: formData.lookAndFeel,
           logo: 'default-logo.png',
         },
       });
 
-      // 4. Save auth token and user data
-      await AsyncStorage.setItem('authToken', userCredential.user.uid);
-      await AsyncStorage.setItem('shopId', shopResponse.data._id);
+      const shopId = shopResponse.data._id;
+      console.log('🔴 SignUp: Shop created:', shopId);
 
-      // 5. Update Redux state
+      // 2. Create user account via API
+      console.log('🔴 SignUp: Creating user account...');
+      const userResponse = await apiClient.createUser(
+        shopId,
+        formData.password,
+        formData.confirmPassword
+      );
+      console.log('🔴 SignUp: User account created');
+
+      // 3. Save shop ID and user data
+      await AsyncStorage.setItem('shopId', shopId);
+      await AsyncStorage.setItem('shopName', formData.shopName);
+      await AsyncStorage.setItem('ownerName', formData.ownerName);
+      await AsyncStorage.setItem('email', formData.email);
+
+      // 4. Update Redux state
       dispatch(
         setUser({
-          uid: userCredential.user.uid,
-          email: userCredential.user.email || '',
+          uid: shopId,
+          email: formData.email,
           displayName: formData.ownerName,
+          shopName: formData.shopName,
         })
       );
 
-      Alert.alert('Success', 'Shop created successfully!');
-      navigation.replace('MainApp');
+      Alert.alert('Success', 'Shop created successfully! Please sign in to continue.', [
+        {
+          text: 'OK',
+          onPress: () => navigation.replace('SignIn'),
+        },
+      ]);
     } catch (error: any) {
       console.error('Sign up error:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Sign up failed';
@@ -237,6 +248,34 @@ const SignUpScreen = ({ navigation }: any) => {
             </View>
           </View>
 
+          <View style={styles.themeSection}>
+            <Text style={styles.themeTitle}>Shop Theme (Optional)</Text>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Menu Description</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="e.g., Italian pizza, pasta, and desserts"
+                value={formData.menuDescription}
+                onChangeText={(value) => handleInputChange('menuDescription', value)}
+                multiline
+                numberOfLines={2}
+                editable={!loading}
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Look and Feel</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., Modern and cozy Italian restaurant"
+                value={formData.lookAndFeel}
+                onChangeText={(value) => handleInputChange('lookAndFeel', value)}
+                editable={!loading}
+              />
+            </View>
+          </View>
+
           <TouchableOpacity
             style={[styles.signUpButton, loading && styles.disabledButton]}
             onPress={handleSignUp}
@@ -320,6 +359,18 @@ const styles = StyleSheet.create({
   },
   mobileInput: {
     flex: 0.75,
+  },
+  themeSection: {
+    backgroundColor: '#f5f5f5',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  themeTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 15,
   },
   signUpButton: {
     backgroundColor: '#6C63FF',

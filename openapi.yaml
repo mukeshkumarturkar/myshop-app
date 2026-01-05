@@ -22,6 +22,8 @@ servers:
 tags:
   - name: Shop
     description: Shop CRUD operations and management
+  - name: Shop-Auth
+    description: Shop user authentication, registration, and password management
   - name: Shop-QR
     description: QR code generation and retrieval for shops
   - name: Catalog
@@ -360,6 +362,131 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/QRCodeResponse'
+
+  /api/shops/user:
+    post:
+      tags:
+        - Shop-Auth
+      summary: Create shop user account
+      description: Create a new shop user. userId is automatically set to the shop's mobile number (country code + number)
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+            example:
+              shopId: "6958fbaac7c72a28f87b07ef"
+              password: "SecurePassword123!"
+              confirmPassword: "SecurePassword123!"
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateUserResponse'
+        '400':
+          description: Invalid request or shop not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/shops/auth:
+    post:
+      tags:
+        - Shop-Auth
+      summary: Authenticate user and get OAuth token
+      description: |
+        Authenticate a shop user and receive a JWT OAuth token valid for 90 days.
+        userId can be either the mobile number (countryCode + mobileNumber) or the shop's email address.
+        If email is provided, the system automatically resolves it to the mobile number from the shop record.
+      operationId: authenticate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRequest'
+            examples:
+              mobileAuth:
+                summary: Authenticate with mobile number
+                value:
+                  userId: "919876543210"
+                  password: "SecurePassword123!"
+              emailAuth:
+                summary: Authenticate with email
+                value:
+                  userId: "shop@example.com"
+                  password: "SecurePassword123!"
+      responses:
+        '200':
+          description: Authentication successful - OAuth token issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials or account suspended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/shops/reset-password:
+    post:
+      tags:
+        - Shop-Auth
+      summary: Reset user password
+      description: |
+        Reset a shop user's password. Validates the old password before allowing the change.
+        userId can be either the mobile number or the shop's email address.
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+            example:
+              userId: "919876543210"
+              oldPassword: "OldPassword123!"
+              newPassword: "NewPassword123!"
+              confirmNewPassword: "NewPassword123!"
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "Password reset successfully"
+        '401':
+          description: Invalid userId or old password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /api/catalogs:
     get:

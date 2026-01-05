@@ -2,7 +2,11 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ApiError } from '../types';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080/api';
+// API Base URL - defaults to soanch.com for production
+// Override with EXPO_PUBLIC_API_URL environment variable
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.soanch.com/api';
+
+console.log('🔴 API Client: Base URL =', API_BASE_URL);
 
 class ApiClient {
   private client: AxiosInstance;
@@ -48,6 +52,31 @@ class ApiClient {
         return Promise.reject(error);
       }
     );
+  }
+
+  // Authentication endpoints
+  async createUser(shopId: string, password: string, confirmPassword: string) {
+    return this.client.post('/shops/user', {
+      shopId,
+      password,
+      confirmPassword,
+    });
+  }
+
+  async authenticate(userId: string, password: string) {
+    return this.client.post('/shops/auth', {
+      userId,
+      password,
+    });
+  }
+
+  async resetPassword(userId: string, oldPassword: string, newPassword: string, confirmNewPassword: string) {
+    return this.client.post('/shops/reset-password', {
+      userId,
+      oldPassword,
+      newPassword,
+      confirmNewPassword,
+    });
   }
 
   // Shop endpoints

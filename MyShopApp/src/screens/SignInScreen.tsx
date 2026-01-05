@@ -12,14 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { useDispatch } from 'react-redux';
-import {
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-} from 'firebase/auth';
-import { auth } from '../config/firebase';
+import { apiClient } from '../services/api';
 import { setUser, setError } from '../store/authSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -42,16 +35,25 @@ const SignInScreen = ({ navigation }: any) => {
 
     setLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log('🔴 SignIn: Attempting email/password authentication...');
 
-      // Save auth token
-      await AsyncStorage.setItem('authToken', userCredential.user.uid);
+      // Call API to authenticate
+      const response = await apiClient.authenticate(email, password);
+      console.log('🔴 SignIn: Authentication successful');
+
+      // Save user data
+      await AsyncStorage.setItem('shopId', response.data.shopId);
+      await AsyncStorage.setItem('shopName', response.data.shopName);
+      await AsyncStorage.setItem('ownerName', response.data.ownerName);
+      await AsyncStorage.setItem('email', response.data.email);
+      await AsyncStorage.setItem('userId', response.data.userId);
 
       dispatch(
         setUser({
-          uid: userCredential.user.uid,
-          email: userCredential.user.email || '',
-          displayName: userCredential.user.displayName || 'User',
+          uid: response.data.userId,
+          email: response.data.email,
+          displayName: response.data.ownerName,
+          shopName: response.data.shopName,
         })
       );
 
@@ -59,7 +61,7 @@ const SignInScreen = ({ navigation }: any) => {
       navigation.replace('MainApp');
     } catch (error: any) {
       console.error('Sign in error:', error);
-      const errorMessage = error.message || 'Sign in failed';
+      const errorMessage = error.response?.data?.message || error.message || 'Sign in failed';
       dispatch(setError(errorMessage));
       Alert.alert('Sign In Failed', errorMessage);
     } finally {
@@ -75,11 +77,8 @@ const SignInScreen = ({ navigation }: any) => {
 
     setLoading(true);
     try {
-      const formattedPhone = '+91' + phoneNumber.replace(/[^\d]/g, '');
-
-      // This requires a RecaptchaVerifier in React Native (more complex setup)
-      // For now, we'll show a simplified approach
-      Alert.alert('OTP Feature', 'Phone OTP requires additional Firebase setup. Please use Email/Password for now.');
+      console.log('🔴 SignIn: Sending OTP to phone...');
+      Alert.alert('OTP Feature', 'Phone OTP authentication will be implemented with a dedicated OTP service. For now, please use Email/Password.');
       setLoading(false);
     } catch (error: any) {
       console.error('OTP error:', error);
@@ -91,9 +90,9 @@ const SignInScreen = ({ navigation }: any) => {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      // Note: Google Sign-In in React Native requires Google Play Services
-      // This is a placeholder - implement using @react-native-google-signin/google-signin
-      Alert.alert('Google Sign-In', 'For production, implement using @react-native-google-signin/google-signin package');
+      console.log('🔴 SignIn: Attempting Google Sign-In...');
+      // For production, implement using @react-native-google-signin/google-signin package
+      Alert.alert('Google Sign-In', 'Google authentication will be configured with Google Cloud Console. Coming soon!');
       setLoading(false);
     } catch (error: any) {
       console.error('Google sign in error:', error);
