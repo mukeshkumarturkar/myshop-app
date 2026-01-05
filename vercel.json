@@ -1,6 +1,6 @@
 {
   "installCommand": "cd MyShopApp && npm install --legacy-peer-deps",
   "buildCommand": "cd MyShopApp && npm run vercel-build",
-  "outputDirectory": "MyShopApp/public"
+  "outputDirectory": "MyShopApp/.expo-output"
 }
 

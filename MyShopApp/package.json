@@ -9,7 +9,7 @@
     "web": "expo start --web",
     "build": "eas build",
     "preview": "eas build --platform android --local",
-    "vercel-build": "rm -rf public && expo export --platform web --output-dir public",
+    "vercel-build": "expo export --platform web --output-dir .expo-output",
     "web-export": "expo export --platform web",
     "lint": "expo lint"
   },
