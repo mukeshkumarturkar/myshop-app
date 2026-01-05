@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd MyShopApp && npm run vercel-build",
+  "outputDirectory": "MyShopApp/public",
+  "rootDirectory": "."
+}
+
