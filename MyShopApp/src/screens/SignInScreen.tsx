@@ -311,10 +311,16 @@ const SignInScreen = ({ navigation }: any) => {
           </TouchableOpacity>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
+            <Text style={styles.footerText}>Not Registered? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-              <Text style={styles.footerLink}>Create Shop Account</Text>
+              <Text style={styles.footerLink}>Sign Up Now</Text>
             </TouchableOpacity>
+          </View>
+
+          <View style={styles.signUpPrompt}>
+            <Text style={styles.signUpPromptText}>
+              Don't have a shop yet? Create one now and start managing your menu!
+            </Text>
           </View>
         </View>
       </ScrollView>
@@ -504,6 +510,21 @@ const styles = StyleSheet.create({
     color: '#6C63FF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  signUpPrompt: {
+    backgroundColor: '#e8eaff',
+    padding: 15,
+    borderRadius: 8,
+    marginTop: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: '#6C63FF',
+  },
+  signUpPromptText: {
+    fontSize: 12,
+    color: '#6C63FF',
+    lineHeight: 18,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });
 
