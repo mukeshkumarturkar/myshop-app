@@ -131,30 +131,53 @@ class ApiClient {
    */
 
   /**
-   * Login and get both public and private tokens
-   * This should be called first to get the publicAccessToken
+   * Public Authentication - Get public access token without credentials
+   * MODE 1: Public mode - no credentials needed, returns public token only (7 days)
+   * MODE 2: Password mode - with credentials, returns both tokens (90 days private + 7 days public)
    */
-  async authenticate(userId: string, password: string) {
+  async authenticate(userIdOrShopId?: string, password?: string) {
     try {
-      console.log('🔴 API Client: Authenticating user:', userId);
-      const response = await this.client.post('/api/shops/auth', {
-        userId,
-        password,
-      });
+      const isPasswordMode = userIdOrShopId && password;
 
-      const data = response.data;
+      if (isPasswordMode) {
+        // MODE 2: Password-verified authentication
+        console.log('🔴 API Client: PASSWORD MODE - Authenticating user:', userIdOrShopId);
+        const response = await this.client.post('/api/shops/auth', {
+          userId: userIdOrShopId,
+          password: password,
+        });
 
-      // Save both tokens
-      if (data.oauthToken) {
-        await this.setPrivateOAuthToken(data.oauthToken);
+        const data = response.data;
+
+        // Save both tokens
+        if (data.oauthToken) {
+          await this.setPrivateOAuthToken(data.oauthToken);
+        }
+
+        if (data.publicAccessToken) {
+          await this.setPublicAccessToken(data.publicAccessToken);
+        }
+
+        console.log('🔴 API Client: PASSWORD MODE - Authentication successful');
+        return data;
+      } else {
+        // MODE 1: Public mode - get public token without credentials
+        // IMPORTANT: Send EMPTY BODY {} - no userId, no password!
+        console.log('🔴 API Client: PUBLIC MODE - Getting public access token');
+        console.log('🔴 API Client: PUBLIC MODE - Sending EMPTY BODY (no credentials)');
+
+        const response = await this.client.post('/api/shops/auth', {});
+
+        const data = response.data;
+
+        // Save public token
+        if (data.publicAccessToken) {
+          await this.setPublicAccessToken(data.publicAccessToken);
+        }
+
+        console.log('🔴 API Client: PUBLIC MODE - Public access token obtained');
+        return data;
       }
-
-      if (data.publicAccessToken) {
-        await this.setPublicAccessToken(data.publicAccessToken);
-      }
-
-      console.log('🔴 API Client: Authentication successful');
-      return data;
     } catch (error: any) {
       console.error('🔴 API Client: Authentication failed:', error.message);
       throw error;

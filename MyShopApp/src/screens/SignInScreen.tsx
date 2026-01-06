@@ -37,9 +37,10 @@ const SignInScreen = ({ navigation }: any) => {
 
     setLoading(true);
     try {
-      console.log('🔴 SignInScreen: Attempting email/password authentication...');
+      console.log('🔴 SignInScreen: PASSWORD MODE - Authenticating with credentials');
+      // PASSWORD MODE: With email and password
       const response = await apiClient.authenticate(email, password);
-      console.log('🔴 SignInScreen: Authentication successful');
+      console.log('🔴 SignInScreen: PASSWORD MODE - Authentication successful');
 
       if (response.oauth_token) {
         await AsyncStorage.setItem('authToken', response.oauth_token);
@@ -62,7 +63,7 @@ const SignInScreen = ({ navigation }: any) => {
       alert('Signed in successfully!');
       navigation.replace('MainApp');
     } catch (error: any) {
-      console.error('🔴 SignInScreen: Sign in error:', error);
+      console.error('🔴 SignInScreen: PASSWORD MODE - Sign in error:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Sign in failed';
       dispatch(setError(errorMessage));
       alert('Sign In Failed: ' + errorMessage);

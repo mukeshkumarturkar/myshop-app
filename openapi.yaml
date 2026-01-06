@@ -332,51 +332,132 @@ paths:
     post:
       tags:
         - Shop-Auth
-      summary: Authenticate and get tokens
+      summary: Get authentication token (two modes)
       description: |
-        Authenticate user and receive both tokens:
-        - **Private OAuth Token** (90 days): For protected backend operations
-        - **Public Access Token** (7 days): For public API access from frontend
+        Two authentication modes available:
         
-        UserId can be either:
-        - Mobile number: countryCode + mobileNumber (e.g., 919876543210)
-        - Email address (e.g., shop@example.com)
+        ### 1. PUBLIC ACCESS MODE (No Credentials)
+        For public users to access shop menus without login
+        - Request: `{ "shopId": "optional" }`
+        - Response: `authLevel: "Public"`, publicAccessToken (7 days, READ-ONLY)
+        - No user account needed
+        
+        ### 2. PASSWORD VERIFIED MODE (With Credentials)
+        For shop owners to get full access
+        - Request: `{ "userId": "mobile/email", "password": "pwd" }`
+        - Response: `authLevel: "Password"`, publicAccessToken + oauthToken
+        - Requires valid shop user account
+        
+        **AuthLevel Values:**
+        - "Public": Anonymous public access (READ-ONLY, 7 days)
+        - "Password": Authenticated owner (FULL ACCESS, 90 days for private)
+        
+        **Using Public Access Token:**
+        ```bash
+        curl -H "Authorization: Bearer {publicAccessToken}" \
+          https://api.soanch.com/api/shops/{shopId}/menus
+        ```
+        
+        **Using Private Token (OAuth):**
+        ```bash
+        curl -X PUT https://api.soanch.com/api/catalogs/{id} \
+          -H "Authorization: Bearer {oauthToken}" \
+          -d '{"name":"Updated"}'
+        ```
+        **Frontend Example (React/Vue):**
+        ```javascript
+        // 1. Login to get tokens
+        const authResponse = await fetch('https://api.soanch.com/api/shops/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            userId: '919876543210',
+            password: 'SecurePassword123!'
+          })
+        });
+        
+        const { publicAccessToken, shopId } = await authResponse.json();
+        
+        // 2. Use publicAccessToken to access public APIs
+        const menuResponse = await fetch(
+          `https://api.soanch.com/api/shops/${shopId}/menus`,
+          {
+            headers: { 'Authorization': `Bearer ${publicAccessToken}` }
+          }
+        );
+        
+        const menuData = await menuResponse.json();
+        console.log(menuData); // Shop menu with today's catalog
+        ```
       operationId: authenticate
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/AuthRequest'
             examples:
-              mobileAuth:
-                summary: Login with mobile number
+              publicAccess:
+                summary: "PUBLIC MODE - Get token without credentials (Anonymous)"
+                value:
+                  shopId: "6958fbaac7c72a28f87b07ef"
+              publicAccessGeneric:
+                summary: "PUBLIC MODE - Get generic token (no specific shop)"
+                value: {}
+              passwordVerified:
+                summary: "PASSWORD MODE - Login with mobile number (Shop Owner)"
                 value:
                   userId: "919876543210"
                   password: "SecurePassword123!"
               emailAuth:
-                summary: Login with email
+                summary: "PASSWORD MODE - Login with email (Shop Owner)"
                 value:
                   userId: "shop@pizzapalace.com"
                   password: "SecurePassword123!"
       responses:
         '200':
-          description: Authentication successful
+          description: Authentication successful with authLevel indicator
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthResponse'
+              examples:
+                publicMode:
+                  summary: "PUBLIC MODE response - No credentials"
+                  value:
+                    status: "success"
+                    message: "Public access token generated"
+                    authLevel: "Public"
+                    publicAccessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    shopId: "6958fbaac7c72a28f87b07ef"
+                    userId: null
+                    publicTokenExpiresInDays: 7
+                    oauthToken: null
+                    expiresInDays: null
+                passwordMode:
+                  summary: "PASSWORD MODE response - With credentials"
+                  value:
+                    status: "success"
+                    message: "Authentication successful"
+                    authLevel: "Password"
+                    oauthToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    publicAccessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    shopId: "6958fbaac7c72a28f87b07ef"
+                    userId: "919876543210"
+                    expiresInDays: 90
+                    publicTokenExpiresInDays: 7
+        '400':
+          description: Bad request (invalid shop ID in public mode)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
               example:
-                status: "success"
-                message: "Authentication successful"
-                oauthToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                publicAccessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                shopId: "6958fbaac7c72a28f87b07ef"
-                userId: "919876543210"
-                expiresInDays: 90
-                publicTokenExpiresInDays: 7
+                status: "error"
+                message: "Shop not found"
         '401':
-          description: Invalid credentials
+          description: Unauthorized (invalid credentials in password mode)
           content:
             application/json:
               schema:
