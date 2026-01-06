@@ -17,6 +17,7 @@ import { setUser, setError, setLoading as setLoadingAction } from '../store/auth
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SignInScreen = ({ navigation }: any) => {
+  console.log('🔴 SignInScreen: Component Mounted');
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
   const [signInMethod, setSignInMethod] = useState<'email' | 'phone'>('email');
@@ -27,33 +28,65 @@ const SignInScreen = ({ navigation }: any) => {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
 
+  React.useEffect(() => {
+    console.log('🔴 SignInScreen: useEffect - Component initialized');
+    console.log('🔴 SignInScreen: Navigation prop available:', !!navigation);
+    return () => {
+      console.log('🔴 SignInScreen: Component unmounting');
+    };
+  }, [navigation]);
+
   const handleEmailSignIn = async () => {
+    console.log('🔴 SignInScreen: handleEmailSignIn called');
+    console.log('🔴 SignInScreen: Email:', email);
+    console.log('🔴 SignInScreen: Password entered:', password.length > 0);
+
     if (!email.trim() || !password.trim()) {
+      console.log('🔴 SignInScreen: Validation failed - empty email or password');
       Alert.alert('Validation Error', 'Please enter email and password');
       return;
     }
 
     setLoading(true);
     try {
-      console.log('🔴 SignIn: Attempting email/password authentication...');
+      console.log('🔴 SignInScreen: Attempting email/password authentication...');
 
       // Call API to authenticate using email
       const response = await apiClient.authenticate(email, password);
-      console.log('🔴 SignIn: Authentication successful');
+      console.log('🔴 SignInScreen: Authentication API response received');
+      console.log('🔴 SignInScreen: Response keys:', Object.keys(response));
+      console.log('🔴 SignInScreen: Authentication successful');
 
       // Save auth token
       if (response.oauth_token) {
+        console.log('🔴 SignInScreen: Saving auth token to AsyncStorage');
         await AsyncStorage.setItem('authToken', response.oauth_token);
       }
 
       // Save user and shop data
-      if (response.shopId) await AsyncStorage.setItem('shopId', response.shopId);
-      if (response.shop_name) await AsyncStorage.setItem('shopName', response.shop_name);
-      if (response.owner_name) await AsyncStorage.setItem('ownerName', response.owner_name);
-      if (response.email) await AsyncStorage.setItem('email', response.email);
-      if (response.userId) await AsyncStorage.setItem('userId', response.userId);
+      if (response.shopId) {
+        console.log('🔴 SignInScreen: Saving shopId:', response.shopId);
+        await AsyncStorage.setItem('shopId', response.shopId);
+      }
+      if (response.shop_name) {
+        console.log('🔴 SignInScreen: Saving shop_name:', response.shop_name);
+        await AsyncStorage.setItem('shopName', response.shop_name);
+      }
+      if (response.owner_name) {
+        console.log('🔴 SignInScreen: Saving owner_name:', response.owner_name);
+        await AsyncStorage.setItem('ownerName', response.owner_name);
+      }
+      if (response.email) {
+        console.log('🔴 SignInScreen: Saving email:', response.email);
+        await AsyncStorage.setItem('email', response.email);
+      }
+      if (response.userId) {
+        console.log('🔴 SignInScreen: Saving userId:', response.userId);
+        await AsyncStorage.setItem('userId', response.userId);
+      }
 
       // Update Redux state
+      console.log('🔴 SignInScreen: Dispatching setUser to Redux');
       dispatch(
         setUser({
           uid: response.userId || response.shopId,
@@ -63,14 +96,19 @@ const SignInScreen = ({ navigation }: any) => {
         })
       );
 
+      console.log('🔴 SignInScreen: Sign in successful - showing success alert');
       Alert.alert('Success', 'Signed in successfully!');
+      console.log('🔴 SignInScreen: Navigating to MainApp');
       navigation.replace('MainApp');
     } catch (error: any) {
-      console.error('Sign in error:', error);
+      console.error('🔴 SignInScreen: Sign in error:', error);
+      console.error('🔴 SignInScreen: Error response data:', error.response?.data);
       const errorMessage = error.response?.data?.message || error.message || 'Sign in failed';
+      console.log('🔴 SignInScreen: Error message:', errorMessage);
       dispatch(setError(errorMessage));
       Alert.alert('Sign In Failed', errorMessage);
     } finally {
+      console.log('🔴 SignInScreen: handleEmailSignIn completed - setting loading to false');
       setLoading(false);
     }
   };
@@ -310,23 +348,32 @@ const SignInScreen = ({ navigation }: any) => {
             <Text style={styles.googleButtonText}>🔐 Sign In with Google</Text>
           </TouchableOpacity>
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Not Registered? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-              <Text style={styles.footerLink}>Sign Up Now</Text>
-            </TouchableOpacity>
-          </View>
+          {/* SIGN UP SECTION - DEBUGGING */}
+          {console.log('🔴 SignInScreen: Rendering footer section with Sign Up link') &&
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Not Registered? </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  console.log('🔴 SignInScreen: Sign Up Now link clicked - navigating to SignUp');
+                  navigation.navigate('SignUp');
+                }}
+              >
+                <Text style={styles.footerLink}>Sign Up Now</Text>
+              </TouchableOpacity>
+            </View>
+          }
 
-          <View style={styles.signUpPrompt}>
-            <Text style={styles.signUpPromptText}>
-              Don't have a shop yet? Create one now and start managing your menu!
-            </Text>
-          </View>
+          {console.log('🔴 SignInScreen: Rendering signUpPrompt info box') &&
+            <View style={styles.signUpPrompt}>
+              <Text style={styles.signUpPromptText}>
+                Don't have a shop yet? Create one now and start managing your menu!
+              </Text>
+            </View>
+          }
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
-};
 };
 
 const styles = StyleSheet.create({
