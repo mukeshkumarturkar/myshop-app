@@ -1,16 +1,4 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
 import { useDispatch } from 'react-redux';
 import { apiClient } from '../services/api';
 import { setUser, setError, setLoading as setLoadingAction } from '../store/authSlice';
@@ -43,537 +31,458 @@ const SignInScreen = ({ navigation }: any) => {
 
     if (!email.trim() || !password.trim()) {
       console.log('🔴 SignInScreen: Validation failed - empty email or password');
-      Alert.alert('Validation Error', 'Please enter email and password');
+      alert('Please enter email and password');
       return;
     }
 
     setLoading(true);
     try {
       console.log('🔴 SignInScreen: Attempting email/password authentication...');
-
-      // Call API to authenticate using email
       const response = await apiClient.authenticate(email, password);
-      console.log('🔴 SignInScreen: Authentication API response received');
-      console.log('🔴 SignInScreen: Response keys:', Object.keys(response));
       console.log('🔴 SignInScreen: Authentication successful');
 
-      // Save auth token
       if (response.oauth_token) {
-        console.log('🔴 SignInScreen: Saving auth token to AsyncStorage');
         await AsyncStorage.setItem('authToken', response.oauth_token);
       }
-
-      // Save user and shop data
       if (response.shopId) {
-        console.log('🔴 SignInScreen: Saving shopId:', response.shopId);
         await AsyncStorage.setItem('shopId', response.shopId);
       }
       if (response.shop_name) {
-        console.log('🔴 SignInScreen: Saving shop_name:', response.shop_name);
         await AsyncStorage.setItem('shopName', response.shop_name);
       }
-      if (response.owner_name) {
-        console.log('🔴 SignInScreen: Saving owner_name:', response.owner_name);
-        await AsyncStorage.setItem('ownerName', response.owner_name);
-      }
-      if (response.email) {
-        console.log('🔴 SignInScreen: Saving email:', response.email);
-        await AsyncStorage.setItem('email', response.email);
-      }
-      if (response.userId) {
-        console.log('🔴 SignInScreen: Saving userId:', response.userId);
-        await AsyncStorage.setItem('userId', response.userId);
-      }
 
-      // Update Redux state
-      console.log('🔴 SignInScreen: Dispatching setUser to Redux');
-      dispatch(
-        setUser({
-          uid: response.userId || response.shopId,
-          email: response.email || email,
-          displayName: response.owner_name || 'Shop Owner',
-          shopName: response.shop_name,
-        })
-      );
+      dispatch(setUser({
+        uid: response.userId || response.shopId,
+        email: response.email || email,
+        displayName: response.owner_name || 'Shop Owner',
+        shopName: response.shop_name,
+      }));
 
-      console.log('🔴 SignInScreen: Sign in successful - showing success alert');
-      Alert.alert('Success', 'Signed in successfully!');
       console.log('🔴 SignInScreen: Navigating to MainApp');
+      alert('Signed in successfully!');
       navigation.replace('MainApp');
     } catch (error: any) {
       console.error('🔴 SignInScreen: Sign in error:', error);
-      console.error('🔴 SignInScreen: Error response data:', error.response?.data);
       const errorMessage = error.response?.data?.message || error.message || 'Sign in failed';
-      console.log('🔴 SignInScreen: Error message:', errorMessage);
       dispatch(setError(errorMessage));
-      Alert.alert('Sign In Failed', errorMessage);
+      alert('Sign In Failed: ' + errorMessage);
     } finally {
-      console.log('🔴 SignInScreen: handleEmailSignIn completed - setting loading to false');
       setLoading(false);
     }
   };
 
   const handlePhoneSignIn = async () => {
     if (!phoneNumber.trim() || phoneNumber.length < 10) {
-      Alert.alert('Validation Error', 'Please enter a valid 10-digit phone number');
+      alert('Please enter a valid 10-digit phone number');
       return;
     }
-
-    setLoading(true);
-    try {
-      console.log('🔴 SignIn: Attempting phone authentication...');
-
-      // Authenticate using phone number as userId
-      const userId = `${countryCode}${phoneNumber}`;
-
-      // For now, show a message that OTP is not yet implemented
-      // In production, this would trigger an OTP send
-      Alert.alert(
-        'Feature Coming Soon',
-        'Phone OTP authentication is currently being integrated with Firebase/OTP service.\n\nFor now, please use Email & Password login.\n\nUserId format: ' + userId
-      );
-      setLoading(false);
-    } catch (error: any) {
-      console.error('Phone auth error:', error);
-      Alert.alert('Error', error.message || 'Authentication failed');
-      setLoading(false);
-    }
+    alert('Feature Coming Soon: Phone OTP authentication will be available soon');
   };
 
   const handleGoogleSignIn = async () => {
-    Alert.alert(
-      'Google Sign-In',
-      'Google authentication will be configured with Google Cloud Console and Firebase.\n\nFor now, please use Email & Password login.'
-    );
+    alert('Google Sign-In: Google authentication will be configured with Firebase');
   };
 
   const handleVerifyOTP = async () => {
     if (!otp.trim() || otp.length < 6) {
-      Alert.alert('Validation Error', 'Please enter a valid 6-digit OTP');
+      alert('Please enter a valid 6-digit OTP');
       return;
     }
-
-    setLoading(true);
-    try {
-      console.log('🔴 SignIn: Verifying OTP...');
-      Alert.alert('Feature Coming Soon', 'OTP verification will be implemented soon');
-      setLoading(false);
-    } catch (error: any) {
-      console.error('OTP verification error:', error);
-      Alert.alert('Verification Failed', error.message);
-      setLoading(false);
-    }
+    alert('Feature Coming Soon: OTP verification will be implemented soon');
   };
 
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Sign in to manage your shop</Text>
-        </View>
+  console.log('🔴 SignInScreen: Render method called - about to return JSX');
 
-        <View style={styles.methodSelector}>
-          <TouchableOpacity
-            style={[
-              styles.methodButton,
-              signInMethod === 'email' && styles.activeMethodButton,
-            ]}
-            onPress={() => {
+  return (
+    <div style={{
+      width: '100%',
+      minHeight: '100vh',
+      backgroundColor: '#fff',
+      padding: '20px',
+    }}>
+      <div style={{
+        maxWidth: '600px',
+        margin: '0 auto',
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '30px 20px',
+          backgroundColor: '#6C63FF',
+          textAlign: 'center',
+          borderRadius: '8px',
+          marginBottom: '30px',
+        }}>
+          <h1 style={{
+            fontSize: '28px',
+            fontWeight: 'bold',
+            color: '#fff',
+            margin: '0 0 5px 0',
+          }}>
+            Welcome Back
+          </h1>
+          <p style={{
+            fontSize: '14px',
+            color: '#f0f0f0',
+            margin: '5px 0 0 0',
+          }}>
+            Sign in to manage your shop
+          </p>
+        </div>
+
+        {/* Method Selector */}
+        <div style={{
+          display: 'flex',
+          gap: '10px',
+          marginBottom: '20px',
+        }}>
+          <button
+            onClick={() => {
               setSignInMethod('email');
               setOtpSent(false);
             }}
+            style={{
+              flex: 1,
+              padding: '12px 15px',
+              border: signInMethod === 'email' ? '2px solid #6C63FF' : '2px solid #ddd',
+              backgroundColor: signInMethod === 'email' ? '#f0edff' : '#fff',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: '600',
+              color: signInMethod === 'email' ? '#6C63FF' : '#666',
+            }}
           >
-            <Text
-              style={[
-                styles.methodButtonText,
-                signInMethod === 'email' && styles.activeMethodButtonText,
-              ]}
-            >
-              📧 Email
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.methodButton,
-              signInMethod === 'phone' && styles.activeMethodButton,
-            ]}
-            onPress={() => {
+            📧 Email
+          </button>
+          <button
+            onClick={() => {
               setSignInMethod('phone');
               setOtpSent(false);
             }}
+            style={{
+              flex: 1,
+              padding: '12px 15px',
+              border: signInMethod === 'phone' ? '2px solid #6C63FF' : '2px solid #ddd',
+              backgroundColor: signInMethod === 'phone' ? '#f0edff' : '#fff',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: '600',
+              color: signInMethod === 'phone' ? '#6C63FF' : '#666',
+            }}
           >
-            <Text
-              style={[
-                styles.methodButtonText,
-                signInMethod === 'phone' && styles.activeMethodButtonText,
-              ]}
-            >
-              📱 Phone
-            </Text>
-          </TouchableOpacity>
-        </View>
+            📱 Phone
+          </button>
+        </div>
 
-        <View style={styles.form}>
+        {/* Form */}
+        <div>
           {signInMethod === 'email' ? (
-            <>
-              {/* EMAIL SIGN IN */}
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Email Address</Text>
-                <TextInput
-                  style={styles.input}
+            <div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#333',
+                  marginBottom: '8px',
+                }}>
+                  Email Address
+                </label>
+                <input
+                  type="email"
                   placeholder="Enter your email"
                   value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  editable={!loading}
-                  autoCapitalize="none"
-                  placeholderTextColor="#999"
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  style={{
+                    width: '100%',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    padding: '12px 15px',
+                    fontSize: '14px',
+                    backgroundColor: '#f9f9f9',
+                    boxSizing: 'border-box',
+                  }}
                 />
-              </View>
+              </div>
 
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Password</Text>
-                <TextInput
-                  style={styles.input}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#333',
+                  marginBottom: '8px',
+                }}>
+                  Password
+                </label>
+                <input
+                  type="password"
                   placeholder="Enter your password"
                   value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  editable={!loading}
-                  placeholderTextColor="#999"
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  style={{
+                    width: '100%',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    padding: '12px 15px',
+                    fontSize: '14px',
+                    backgroundColor: '#f9f9f9',
+                    boxSizing: 'border-box',
+                  }}
                 />
-              </View>
+              </div>
 
-              <TouchableOpacity
-                style={[styles.signInButton, loading && styles.disabledButton]}
-                onPress={handleEmailSignIn}
+              <button
+                onClick={handleEmailSignIn}
                 disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.signInButtonText}>Sign In</Text>
-                )}
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              {/* PHONE OTP SIGN IN */}
-              {!otpSent ? (
-                <>
-                  <View style={styles.formGroup}>
-                    <Text style={styles.label}>Mobile Number</Text>
-                    <View style={styles.phoneInputContainer}>
-                      <View style={styles.countryCodeBox}>
-                        <Text style={styles.countryCode}>+{countryCode}</Text>
-                      </View>
-                      <TextInput
-                        style={styles.phoneInput}
-                        placeholder="10-digit mobile number"
-                        value={phoneNumber}
-                        onChangeText={setPhoneNumber}
-                        keyboardType="phone-pad"
-                        editable={!loading}
-                        maxLength={10}
-                        placeholderTextColor="#999"
-                      />
-                    </View>
-                  </View>
-
-                  <TouchableOpacity
-                    style={[styles.signInButton, loading && styles.disabledButton]}
-                    onPress={handlePhoneSignIn}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.signInButtonText}>Send OTP</Text>
-                    )}
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  <View style={styles.otpInfo}>
-                    <Text style={styles.otpInfoText}>
-                      OTP sent to +{countryCode}{phoneNumber}
-                    </Text>
-                  </View>
-
-                  <View style={styles.formGroup}>
-                    <Text style={styles.label}>Enter OTP</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="6-digit OTP"
-                      value={otp}
-                      onChangeText={setOtp}
-                      keyboardType="number-pad"
-                      editable={!loading}
-                      maxLength={6}
-                      placeholderTextColor="#999"
-                    />
-                  </View>
-
-                  <TouchableOpacity
-                    style={[styles.signInButton, loading && styles.disabledButton]}
-                    onPress={handleVerifyOTP}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.signInButtonText}>Verify OTP</Text>
-                    )}
-                  </TouchableOpacity>
-
-                  <TouchableOpacity onPress={() => setOtpSent(false)}>
-                    <Text style={styles.changePhoneText}>← Use different number</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </>
-          )}
-
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignIn}>
-            <Text style={styles.googleButtonText}>🔐 Sign In with Google</Text>
-          </TouchableOpacity>
-
-          {/* SIGN UP SECTION - DEBUGGING */}
-          {console.log('🔴 SignInScreen: Rendering footer section with Sign Up link') &&
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>Not Registered? </Text>
-              <TouchableOpacity
-                onPress={() => {
-                  console.log('🔴 SignInScreen: Sign Up Now link clicked - navigating to SignUp');
-                  navigation.navigate('SignUp');
+                style={{
+                  width: '100%',
+                  backgroundColor: '#6C63FF',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '14px',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  opacity: loading ? 0.6 : 1,
                 }}
               >
-                <Text style={styles.footerLink}>Sign Up Now</Text>
-              </TouchableOpacity>
-            </View>
-          }
+                {loading ? 'Signing In...' : 'Sign In'}
+              </button>
+            </div>
+          ) : (
+            <div>
+              {!otpSent ? (
+                <div>
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#333',
+                      marginBottom: '8px',
+                    }}>
+                      Mobile Number
+                    </label>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <div style={{
+                        border: '1px solid #ddd',
+                        borderRadius: '8px',
+                        padding: '12px 15px',
+                        backgroundColor: '#f9f9f9',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}>
+                        +{countryCode}
+                      </div>
+                      <input
+                        type="tel"
+                        placeholder="10-digit mobile number"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        maxLength={10}
+                        style={{
+                          flex: 1,
+                          border: '1px solid #ddd',
+                          borderRadius: '8px',
+                          padding: '12px 15px',
+                          fontSize: '14px',
+                          backgroundColor: '#f9f9f9',
+                        }}
+                      />
+                    </div>
+                  </div>
 
-          {console.log('🔴 SignInScreen: Rendering signUpPrompt info box') &&
-            <View style={styles.signUpPrompt}>
-              <Text style={styles.signUpPromptText}>
-                Don't have a shop yet? Create one now and start managing your menu!
-              </Text>
-            </View>
-          }
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+                  <button
+                    onClick={handlePhoneSignIn}
+                    disabled={loading}
+                    style={{
+                      width: '100%',
+                      backgroundColor: '#6C63FF',
+                      color: '#fff',
+                      border: 'none',
+                      padding: '14px',
+                      borderRadius: '8px',
+                      fontSize: '16px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      opacity: loading ? 0.6 : 1,
+                    }}
+                  >
+                    {loading ? 'Sending OTP...' : 'Send OTP'}
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div style={{
+                    backgroundColor: '#d4edda',
+                    padding: '12px',
+                    borderRadius: '6px',
+                    marginBottom: '20px',
+                    borderLeft: '3px solid #28a745',
+                    fontSize: '13px',
+                    color: '#155724',
+                  }}>
+                    OTP sent to +{countryCode}{phoneNumber}
+                  </div>
+
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#333',
+                      marginBottom: '8px',
+                    }}>
+                      Enter OTP
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="6-digit OTP"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      maxLength={6}
+                      style={{
+                        width: '100%',
+                        border: '1px solid #ddd',
+                        borderRadius: '8px',
+                        padding: '12px 15px',
+                        fontSize: '14px',
+                        backgroundColor: '#f9f9f9',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleVerifyOTP}
+                    disabled={loading}
+                    style={{
+                      width: '100%',
+                      backgroundColor: '#6C63FF',
+                      color: '#fff',
+                      border: 'none',
+                      padding: '14px',
+                      borderRadius: '8px',
+                      fontSize: '16px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      marginBottom: '15px',
+                      opacity: loading ? 0.6 : 1,
+                    }}
+                  >
+                    {loading ? 'Verifying...' : 'Verify OTP'}
+                  </button>
+
+                  <button
+                    onClick={() => setOtpSent(false)}
+                    style={{
+                      width: '100%',
+                      backgroundColor: '#fff',
+                      color: '#6C63FF',
+                      border: '1px solid #6C63FF',
+                      padding: '14px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                    }}
+                  >
+                    ← Use different number
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          margin: '20px 0',
+          gap: '10px',
+        }}>
+          <div style={{ flex: 1, height: '1px', backgroundColor: '#ddd' }} />
+          <span style={{ color: '#999', fontSize: '12px' }}>or</span>
+          <div style={{ flex: 1, height: '1px', backgroundColor: '#ddd' }} />
+        </div>
+
+        {/* Google Button */}
+        <button
+          onClick={handleGoogleSignIn}
+          style={{
+            width: '100%',
+            border: '1px solid #ddd',
+            padding: '14px',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: '600',
+            backgroundColor: '#f9f9f9',
+            color: '#333',
+            cursor: 'pointer',
+            marginBottom: '20px',
+          }}
+        >
+          🔐 Sign In with Google
+        </button>
+
+        {/* Sign Up Link */}
+        <div style={{
+          textAlign: 'center',
+          marginTop: '20px',
+        }}>
+          <p style={{ margin: '0 0 10px 0', color: '#666', fontSize: '14px' }}>
+            Not Registered?{' '}
+            <button
+              onClick={() => {
+                console.log('🔴 SignInScreen: SIGN UP NOW LINK CLICKED!');
+                console.log('🔴 SignInScreen: Navigation prop:', !!navigation);
+                if (navigation && navigation.navigate) {
+                  navigation.navigate('SignUp');
+                  console.log('🔴 SignInScreen: Navigation call successful');
+                }
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#6C63FF',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+              }}
+            >
+              Sign Up Now
+            </button>
+          </p>
+        </div>
+
+        {/* Info Box */}
+        <div style={{
+          backgroundColor: '#e8eaff',
+          padding: '15px',
+          borderRadius: '8px',
+          marginTop: '15px',
+          borderLeft: '4px solid #6C63FF',
+        }}>
+          <p style={{
+            fontSize: '12px',
+            color: '#6C63FF',
+            lineHeight: '18px',
+            fontWeight: '500',
+            textAlign: 'center',
+            margin: '0',
+          }}>
+            Don't have a shop yet? Create one now and start managing your menu!
+          </p>
+        </div>
+      </div>
+    </div>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingVertical: 20,
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 30,
-    backgroundColor: '#6C63FF',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#f0f0f0',
-    marginTop: 5,
-  },
-  methodSelector: {
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 20,
-    gap: 10,
-  },
-  methodButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderWidth: 2,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  activeMethodButton: {
-    borderColor: '#6C63FF',
-    backgroundColor: '#f0edff',
-  },
-  methodButtonText: {
-    fontSize: 13,
-    color: '#666',
-    fontWeight: '600',
-  },
-  activeMethodButtonText: {
-    color: '#6C63FF',
-  },
-  form: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  formGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 14,
-    backgroundColor: '#f9f9f9',
-  },
-  phoneInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  countryCodeBox: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    justifyContent: 'center',
-    backgroundColor: '#f9f9f9',
-  },
-  countryCode: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  },
-  phoneInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 14,
-    backgroundColor: '#f9f9f9',
-  },
-  otpInfo: {
-    backgroundColor: '#d4edda',
-    padding: 12,
-    borderRadius: 6,
-    marginBottom: 20,
-    borderLeftWidth: 3,
-    borderLeftColor: '#28a745',
-  },
-  otpInfoText: {
-    fontSize: 13,
-    color: '#155724',
-    fontWeight: '500',
-  },
-  signInButton: {
-    backgroundColor: '#6C63FF',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  signInButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  changePhoneText: {
-    color: '#6C63FF',
-    textAlign: 'center',
-    marginTop: 15,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-    gap: 10,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#ddd',
-  },
-  dividerText: {
-    color: '#999',
-    fontSize: 12,
-  },
-  googleButton: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 20,
-    backgroundColor: '#f9f9f9',
-  },
-  googleButtonText: {
-    color: '#333',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  footerText: {
-    color: '#666',
-    fontSize: 14,
-  },
-  footerLink: {
-    color: '#6C63FF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  signUpPrompt: {
-    backgroundColor: '#e8eaff',
-    padding: 15,
-    borderRadius: 8,
-    marginTop: 15,
-    borderLeftWidth: 4,
-    borderLeftColor: '#6C63FF',
-  },
-  signUpPromptText: {
-    fontSize: 12,
-    color: '#6C63FF',
-    lineHeight: 18,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-});
 
 export default SignInScreen;
 

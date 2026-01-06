@@ -1,432 +1,317 @@
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  Image,
-  Share,
-} from 'react-native';
-import { useSelector, useDispatch } from 'react-redux';
-import { useIsFocused } from '@react-navigation/native';
+import React, { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { apiClient } from '../services/api';
-import { setCurrentShop } from '../store/shopSlice';
+import { useSelector } from 'react-redux';
 import { RootState } from '../store';
-import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import { apiClient } from '../services/api';
+import QRCode from 'qrcode.react';
 
 const ManageShopScreen = ({ navigation }: any) => {
-  const dispatch = useDispatch();
-  const isFocused = useIsFocused();
   const currentShop = useSelector((state: RootState) => state.shop.currentShop);
   const [loading, setLoading] = useState(false);
-  const [qrCode, setQrCode] = useState<string | null>(null);
   const [generatingQR, setGeneratingQR] = useState(false);
+  const [qrCode, setQrCode] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isFocused) {
-      loadShopData();
-    }
-  }, [isFocused]);
+    loadShopData();
+  }, []);
 
   const loadShopData = async () => {
     setLoading(true);
     try {
       const shopId = await AsyncStorage.getItem('shopId');
       if (!shopId) {
-        Alert.alert('Error', 'Shop ID not found');
+        alert('Shop ID not found');
         return;
       }
-
-      const response = await apiClient.getShopById(shopId);
-      dispatch(setCurrentShop(response.data));
-
-      // Try to load QR code
-      if (response.data.qr_code) {
-        setQrCode(response.data.qr_code);
-      }
+      const response = await apiClient.getShop(shopId);
+      // Store in Redux or state as needed
     } catch (error: any) {
       console.error('Error loading shop:', error);
-      Alert.alert('Error', 'Failed to load shop data');
+      alert('Failed to load shop data');
     } finally {
       setLoading(false);
     }
   };
 
   const handleGenerateQR = async () => {
-    if (!currentShop) {
-      Alert.alert('Error', 'Shop data not found');
-      return;
-    }
-
     setGeneratingQR(true);
     try {
-      const response = await apiClient.generateQRCode(currentShop._id);
-      setQrCode(response.data.qrCode);
-      Alert.alert('Success', 'QR code generated successfully');
+      const shopId = await AsyncStorage.getItem('shopId');
+      if (!shopId) {
+        alert('Shop ID not found');
+        return;
+      }
+
+      const qrElement = document.getElementById('qrcode');
+      if (qrElement) {
+        const canvas = qrElement.querySelector('canvas');
+        if (canvas) {
+          setQrCode(canvas.toDataURL('image/png'));
+          alert('QR Code generated successfully!');
+        }
+      }
     } catch (error: any) {
-      console.error('Error generating QR code:', error);
-      Alert.alert('Error', 'Failed to generate QR code');
+      alert('Failed to generate QR code');
     } finally {
       setGeneratingQR(false);
     }
   };
 
   const handleShareQR = async () => {
-    if (!qrCode || !currentShop) {
-      Alert.alert('Error', 'QR code not available');
-      return;
-    }
-
     try {
-      // Save QR code to temporary file
-      const fileName = `${currentShop._id}-qr.png`;
-      const fileUri = FileSystem.documentDirectory + fileName;
-
-      // Convert base64 to file if needed
-      if (qrCode.startsWith('data:')) {
-        const base64Data = qrCode.split(',')[1];
-        await FileSystem.writeAsStringAsync(fileUri, base64Data, {
-          encoding: FileSystem.EncodingType.Base64,
+      if (navigator.share && qrCode) {
+        await navigator.share({
+          title: 'My Shop QR Code',
+          text: 'Scan this to view my menu!',
         });
+      } else {
+        alert('QR Code: ' + qrCode?.substring(0, 50) + '...');
       }
-
-      await Sharing.shareAsync(fileUri, {
-        mimeType: 'image/png',
-        dialogTitle: `Share ${currentShop.name} QR Code`,
-      });
     } catch (error: any) {
-      console.error('Error sharing QR code:', error);
-      Alert.alert('Error', 'Failed to share QR code');
+      console.error('Error sharing:', error);
     }
   };
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#6C63FF" />
-      </View>
+      <div style={{
+        width: '100%',
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <p>Loading...</p>
+      </div>
     );
   }
 
   if (!currentShop) {
     return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>No shop data available</Text>
-      </View>
+      <div style={{
+        width: '100%',
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '16px',
+        color: '#d32f2f',
+      }}>
+        No shop data available
+      </div>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Shop Management</Text>
-      </View>
+    <div style={{
+      width: '100%',
+      backgroundColor: '#f5f5f5',
+      padding: '20px',
+      minHeight: '100vh',
+    }}>
+      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+        <h1 style={{
+          fontSize: '24px',
+          fontWeight: 'bold',
+          marginBottom: '20px',
+          color: '#333',
+        }}>
+          Shop Management
+        </h1>
 
-      {/* Shop Details Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Shop Details</Text>
+        {/* Shop Details Card */}
+        <div style={{
+          backgroundColor: '#fff',
+          padding: '20px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        }}>
+          <h2 style={{
+            fontSize: '18px',
+            fontWeight: 'bold',
+            marginBottom: '15px',
+            color: '#333',
+          }}>
+            Shop Details
+          </h2>
 
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Shop Name:</Text>
-          <Text style={styles.detailValue}>{currentShop.name}</Text>
-        </View>
+          <p style={{ marginBottom: '12px', borderBottom: '1px solid #f0f0f0', paddingBottom: '12px' }}>
+            <strong style={{ color: '#666' }}>Shop Name:</strong>
+            <span style={{ color: '#333', float: 'right' }}>{currentShop.name}</span>
+          </p>
+          <p style={{ marginBottom: '12px', borderBottom: '1px solid #f0f0f0', paddingBottom: '12px' }}>
+            <strong style={{ color: '#666' }}>Owner:</strong>
+            <span style={{ color: '#333', float: 'right' }}>{currentShop.owner}</span>
+          </p>
+          <p style={{ marginBottom: '12px', borderBottom: '1px solid #f0f0f0', paddingBottom: '12px' }}>
+            <strong style={{ color: '#666' }}>Email:</strong>
+            <span style={{ color: '#333', float: 'right' }}>{currentShop.email || 'N/A'}</span>
+          </p>
+          <p style={{ marginBottom: '12px', borderBottom: '1px solid #f0f0f0', paddingBottom: '12px' }}>
+            <strong style={{ color: '#666' }}>Address:</strong>
+            <span style={{ color: '#333', float: 'right' }}>{currentShop.address}</span>
+          </p>
 
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Owner:</Text>
-          <Text style={styles.detailValue}>{currentShop.owner}</Text>
-        </View>
+          <button
+            onClick={() => navigation?.navigate?.('EditShop', { shop: currentShop })}
+            style={{
+              width: '100%',
+              backgroundColor: '#f39c12',
+              color: '#fff',
+              border: 'none',
+              padding: '12px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              marginTop: '15px',
+            }}
+          >
+            Edit Shop Details
+          </button>
+        </div>
 
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Email:</Text>
-          <Text style={styles.detailValue}>{currentShop.email || 'N/A'}</Text>
-        </View>
+        {/* QR Code Card */}
+        <div style={{
+          backgroundColor: '#fff',
+          padding: '20px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        }}>
+          <h2 style={{
+            fontSize: '18px',
+            fontWeight: 'bold',
+            marginBottom: '15px',
+            color: '#333',
+          }}>
+            QR Code
+          </h2>
 
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Address:</Text>
-          <Text style={styles.detailValue}>{currentShop.address}</Text>
-        </View>
-
-        {currentShop.mobile_number && (
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Mobile:</Text>
-            <Text style={styles.detailValue}>
-              +{currentShop.mobile_country_code} {currentShop.mobile_number}
-            </Text>
-          </View>
-        )}
-
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => navigation.navigate('EditShop', { shop: currentShop })}
-        >
-          <Text style={styles.editButtonText}>Edit Shop Details</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* QR Code Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>QR Code</Text>
-
-        {qrCode ? (
-          <>
-            <View style={styles.qrContainer}>
-              <Image
-                source={{ uri: qrCode }}
-                style={styles.qrImage}
-                resizeMode="contain"
-              />
-            </View>
-            <Text style={styles.qrInfoText}>
-              Customers can scan this QR code to view your menu
-            </Text>
-            <TouchableOpacity
-              style={styles.shareButton}
-              onPress={handleShareQR}
-            >
-              <Text style={styles.shareButtonText}>Share QR Code</Text>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <>
-            <Text style={styles.noQrText}>No QR code generated yet</Text>
-            <TouchableOpacity
-              style={[styles.generateButton, generatingQR && styles.disabledButton]}
-              onPress={handleGenerateQR}
-              disabled={generatingQR}
-            >
-              {generatingQR ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.generateButtonText}>Generate QR Code</Text>
-              )}
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
-
-      {/* Theme Card */}
-      {currentShop.theme && (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Theme Settings</Text>
-
-          {currentShop.theme.colors && (
-            <View style={styles.colorPreview}>
-              <Text style={styles.colorLabel}>Primary Color:</Text>
-              <View
-                style={[
-                  styles.colorBox,
-                  { backgroundColor: currentShop.theme.colors.primary },
-                ]}
-              />
-            </View>
+          {qrCode ? (
+            <>
+              <div style={{
+                textAlign: 'center',
+                padding: '20px',
+                backgroundColor: '#f9f9f9',
+                borderRadius: '8px',
+                marginBottom: '15px',
+              }}>
+                <img
+                  src={qrCode}
+                  alt="QR Code"
+                  style={{
+                    width: '250px',
+                    height: '250px',
+                  }}
+                />
+              </div>
+              <p style={{
+                fontSize: '12px',
+                color: '#666',
+                textAlign: 'center',
+                marginBottom: '15px',
+                fontStyle: 'italic',
+              }}>
+                Customers can scan this QR code to view your menu
+              </p>
+              <button
+                onClick={handleShareQR}
+                style={{
+                  width: '100%',
+                  backgroundColor: '#27ae60',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                }}
+              >
+                Share QR Code
+              </button>
+            </>
+          ) : (
+            <>
+              <p style={{
+                fontSize: '14px',
+                color: '#999',
+                textAlign: 'center',
+                marginBottom: '15px',
+              }}>
+                No QR code generated yet
+              </p>
+              <button
+                onClick={handleGenerateQR}
+                disabled={generatingQR}
+                style={{
+                  width: '100%',
+                  backgroundColor: '#6C63FF',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  opacity: generatingQR ? 0.6 : 1,
+                }}
+              >
+                {generatingQR ? 'Generating...' : 'Generate QR Code'}
+              </button>
+            </>
           )}
 
-          {currentShop.theme.lookAndFeel && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Style:</Text>
-              <Text style={styles.detailValue}>{currentShop.theme.lookAndFeel}</Text>
-            </View>
-          )}
-        </View>
-      )}
+          {/* Hidden QR Code Generator */}
+          <div style={{ display: 'none' }} id="qrcode">
+            <QRCode value={currentShop._id || 'shop'} />
+          </div>
+        </div>
 
-      {/* Action Buttons */}
-      <View style={styles.actionButtonsContainer}>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.catalogButton]}
-          onPress={() => navigation.navigate('CatalogList')}
-        >
-          <Text style={styles.actionButtonText}>Manage Catalog</Text>
-        </TouchableOpacity>
+        {/* Action Buttons */}
+        <div style={{
+          display: 'flex',
+          gap: '10px',
+          marginTop: '20px',
+          marginBottom: '20px',
+        }}>
+          <button
+            onClick={() => navigation?.navigate?.('CatalogList')}
+            style={{
+              flex: 1,
+              backgroundColor: '#3498db',
+              color: '#fff',
+              border: 'none',
+              padding: '14px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '14px',
+            }}
+          >
+            Manage Catalog
+          </button>
 
-        <TouchableOpacity
-          style={[styles.actionButton, styles.refreshButton]}
-          onPress={loadShopData}
-        >
-          <Text style={styles.actionButtonText}>Refresh</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.bottomPadding} />
-    </ScrollView>
+          <button
+            onClick={loadShopData}
+            style={{
+              flex: 1,
+              backgroundColor: '#95a5a6',
+              color: '#fff',
+              border: 'none',
+              padding: '14px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '14px',
+            }}
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    backgroundColor: '#6C63FF',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    paddingTop: 30,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  card: {
-    backgroundColor: '#fff',
-    marginHorizontal: 15,
-    marginTop: 15,
-    padding: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  detailLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-    flex: 0.4,
-  },
-  detailValue: {
-    fontSize: 14,
-    color: '#333',
-    flex: 0.6,
-    textAlign: 'right',
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#e74c3c',
-  },
-  qrContainer: {
-    alignItems: 'center',
-    paddingVertical: 20,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    marginBottom: 15,
-  },
-  qrImage: {
-    width: 250,
-    height: 250,
-  },
-  qrInfoText: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 15,
-    fontStyle: 'italic',
-  },
-  noQrText: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
-    marginBottom: 15,
-  },
-  shareButton: {
-    backgroundColor: '#27ae60',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  shareButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  generateButton: {
-    backgroundColor: '#6C63FF',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  generateButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  editButton: {
-    backgroundColor: '#f39c12',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 15,
-  },
-  editButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  colorPreview: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  colorLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-    marginRight: 10,
-  },
-  colorBox: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  actionButtonsContainer: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 15,
-    marginTop: 20,
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  catalogButton: {
-    backgroundColor: '#3498db',
-  },
-  refreshButton: {
-    backgroundColor: '#95a5a6',
-  },
-  actionButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  bottomPadding: {
-    height: 20,
-  },
-});
 
 export default ManageShopScreen;
 

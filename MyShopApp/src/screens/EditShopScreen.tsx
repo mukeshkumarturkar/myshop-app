@@ -1,359 +1,219 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import { useDispatch } from 'react-redux';
+import React, { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient } from '../services/api';
-import { setCurrentShop } from '../store/shopSlice';
-import { Shop } from '../types';
 
-const EditShopScreen = ({ route, navigation }: any) => {
-  const dispatch = useDispatch();
-  const shop: Shop = route.params?.shop;
+const EditShopScreen = ({ navigation, route }: any) => {
   const [loading, setLoading] = useState(false);
-
   const [formData, setFormData] = useState({
-    name: shop?.name || '',
-    owner: shop?.owner || '',
-    address: shop?.address || '',
-    email: shop?.email || '',
-    mobileCountryCode: shop?.mobile_country_code || '91',
-    mobileNumber: shop?.mobile_number || '',
-    primaryColor: shop?.theme?.colors?.primary || '#6C63FF',
-    secondaryColor: shop?.theme?.colors?.secondary || '#FFFFFF',
-    lookAndFeel: shop?.theme?.lookAndFeel || 'Modern',
+    name: '',
+    owner: '',
+    email: '',
+    address: '',
   });
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value,
-    }));
+  useEffect(() => {
+    if (route?.params?.shop) {
+      setFormData(route.params.shop);
+    } else {
+      loadShopData();
+    }
+  }, []);
+
+  const loadShopData = async () => {
+    try {
+      const shopId = await AsyncStorage.getItem('shopId');
+      if (!shopId) return;
+
+      const response = await apiClient.getShop(shopId);
+      setFormData(response.data);
+    } catch (error: any) {
+      console.error('Error loading shop:', error);
+    }
   };
 
-  const validateForm = () => {
-    if (!formData.name.trim()) {
-      Alert.alert('Validation Error', 'Shop name is required');
-      return false;
+  const handleSaveChanges = async () => {
+    if (!formData.name.trim() || !formData.owner.trim()) {
+      alert('Please fill in all required fields');
+      return;
     }
-    if (!formData.owner.trim()) {
-      Alert.alert('Validation Error', 'Owner name is required');
-      return false;
-    }
-    if (!formData.address.trim()) {
-      Alert.alert('Validation Error', 'Address is required');
-      return false;
-    }
-    return true;
-  };
-
-  const handleSave = async () => {
-    if (!validateForm()) return;
 
     setLoading(true);
     try {
-      const updatedData = {
-        name: formData.name,
-        owner: formData.owner,
-        address: formData.address,
-        email: formData.email,
-        mobile_country_code: formData.mobileCountryCode,
-        mobile_number: formData.mobileNumber,
-        theme: {
-          colors: {
-            primary: formData.primaryColor,
-            secondary: formData.secondaryColor,
-          },
-          lookAndFeel: formData.lookAndFeel,
-          menu: shop?.theme?.menu || 'Menu',
-          logo: shop?.theme?.logo || 'default-logo.png',
-        },
-      };
+      const shopId = await AsyncStorage.getItem('shopId');
+      if (!shopId) {
+        alert('Shop ID not found');
+        return;
+      }
 
-      const response = await apiClient.updateShop(shop._id, updatedData);
-      dispatch(setCurrentShop(response.data));
-      Alert.alert('Success', 'Shop details updated successfully');
-      navigation.goBack();
+      await apiClient.updateShop(shopId, formData);
+      alert('Shop details updated successfully');
+      navigation?.goBack();
     } catch (error: any) {
-      console.error('Error updating shop:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to update shop';
-      Alert.alert('Error', errorMessage);
+      alert('Failed to update shop details');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Edit Shop Details</Text>
-        </View>
+    <div style={{
+      width: '100%',
+      minHeight: '100vh',
+      backgroundColor: '#f5f5f5',
+      padding: '20px',
+    }}>
+      <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+        <h1 style={{
+          fontSize: '24px',
+          fontWeight: 'bold',
+          marginBottom: '20px',
+          color: '#333',
+        }}>
+          Edit Shop Details
+        </h1>
 
-        <View style={styles.form}>
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Shop Name *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter shop name"
+        <div style={{
+          backgroundColor: '#fff',
+          padding: '20px',
+          borderRadius: '8px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        }}>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{
+              display: 'block',
+              fontWeight: '600',
+              marginBottom: '5px',
+              color: '#333',
+            }}>
+              Shop Name *
+            </label>
+            <input
+              type="text"
               value={formData.name}
-              onChangeText={(value) => handleInputChange('name', value)}
-              editable={!loading}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '14px',
+                boxSizing: 'border-box',
+              }}
             />
-          </View>
+          </div>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Owner Name *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter owner name"
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{
+              display: 'block',
+              fontWeight: '600',
+              marginBottom: '5px',
+              color: '#333',
+            }}>
+              Owner Name *
+            </label>
+            <input
+              type="text"
               value={formData.owner}
-              onChangeText={(value) => handleInputChange('owner', value)}
-              editable={!loading}
+              onChange={(e) => setFormData({ ...formData, owner: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '14px',
+                boxSizing: 'border-box',
+              }}
             />
-          </View>
+          </div>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Email Address</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter email"
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{
+              display: 'block',
+              fontWeight: '600',
+              marginBottom: '5px',
+              color: '#333',
+            }}>
+              Email
+            </label>
+            <input
+              type="email"
               value={formData.email}
-              onChangeText={(value) => handleInputChange('email', value)}
-              keyboardType="email-address"
-              editable={!loading}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '14px',
+                boxSizing: 'border-box',
+              }}
             />
-          </View>
+          </div>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Shop Address *</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Enter full shop address"
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{
+              display: 'block',
+              fontWeight: '600',
+              marginBottom: '5px',
+              color: '#333',
+            }}>
+              Address
+            </label>
+            <textarea
               value={formData.address}
-              onChangeText={(value) => handleInputChange('address', value)}
-              multiline
-              numberOfLines={3}
-              editable={!loading}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '14px',
+                boxSizing: 'border-box',
+                minHeight: '80px',
+                fontFamily: 'Arial, sans-serif',
+              }}
             />
-          </View>
+          </div>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Mobile Number</Text>
-            <View style={styles.mobileInputContainer}>
-              <TextInput
-                style={[styles.input, styles.countryCode]}
-                placeholder="+91"
-                value={formData.mobileCountryCode}
-                onChangeText={(value) => handleInputChange('mobileCountryCode', value)}
-                maxLength={3}
-                editable={!loading}
-              />
-              <TextInput
-                style={[styles.input, styles.mobileInput]}
-                placeholder="Mobile number"
-                value={formData.mobileNumber}
-                onChangeText={(value) => handleInputChange('mobileNumber', value)}
-                keyboardType="phone-pad"
-                editable={!loading}
-              />
-            </View>
-          </View>
-
-          <Text style={styles.sectionTitle}>Theme Settings</Text>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Look & Feel</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g., Modern, Traditional, Elegant"
-              value={formData.lookAndFeel}
-              onChangeText={(value) => handleInputChange('lookAndFeel', value)}
-              editable={!loading}
-            />
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Primary Color</Text>
-            <View style={styles.colorInputContainer}>
-              <TextInput
-                style={[styles.input, styles.colorInput]}
-                placeholder="#6C63FF"
-                value={formData.primaryColor}
-                onChangeText={(value) => handleInputChange('primaryColor', value)}
-                editable={!loading}
-              />
-              <View
-                style={[
-                  styles.colorPreview,
-                  { backgroundColor: formData.primaryColor || '#6C63FF' },
-                ]}
-              />
-            </View>
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Secondary Color</Text>
-            <View style={styles.colorInputContainer}>
-              <TextInput
-                style={[styles.input, styles.colorInput]}
-                placeholder="#FFFFFF"
-                value={formData.secondaryColor}
-                onChangeText={(value) => handleInputChange('secondaryColor', value)}
-                editable={!loading}
-              />
-              <View
-                style={[
-                  styles.colorPreview,
-                  { backgroundColor: formData.secondaryColor || '#FFFFFF' },
-                ]}
-              />
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.saveButton, loading && styles.disabledButton]}
-            onPress={handleSave}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.saveButtonText}>Save Changes</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={() => navigation.goBack()}
-            disabled={loading}
-          >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              onClick={handleSaveChanges}
+              disabled={loading}
+              style={{
+                flex: 1,
+                backgroundColor: '#6C63FF',
+                color: '#fff',
+                border: 'none',
+                padding: '12px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                opacity: loading ? 0.6 : 1,
+              }}
+            >
+              {loading ? 'Saving...' : 'Save Changes'}
+            </button>
+            <button
+              onClick={() => navigation?.goBack()}
+              style={{
+                flex: 1,
+                backgroundColor: '#95a5a6',
+                color: '#fff',
+                border: 'none',
+                padding: '12px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 20,
-  },
-  header: {
-    backgroundColor: '#6C63FF',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    paddingTop: 30,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  form: {
-    padding: 20,
-  },
-  formGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 14,
-    backgroundColor: '#f9f9f9',
-  },
-  textArea: {
-    minHeight: 90,
-    textAlignVertical: 'top',
-  },
-  mobileInputContainer: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  countryCode: {
-    flex: 0.25,
-  },
-  mobileInput: {
-    flex: 0.75,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 20,
-    marginBottom: 15,
-  },
-  colorInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  colorInput: {
-    flex: 1,
-  },
-  colorPreview: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  saveButton: {
-    backgroundColor: '#6C63FF',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  cancelButton: {
-    borderWidth: 2,
-    borderColor: '#6C63FF',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  cancelButtonText: {
-    color: '#6C63FF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
 
 export default EditShopScreen;
 

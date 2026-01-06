@@ -25,15 +25,15 @@ const ShopStack = createNativeStackNavigator();
 // Auth Stack
 const AuthStack = () => (
   <Stack.Navigator
-    initialRouteName="Home"
+    initialRouteName="SignIn"
     screenOptions={{
       headerShown: false,
       animationEnabled: true,
     }}
   >
-    <Stack.Screen name="Home" component={HomePage} />
     <Stack.Screen name="SignIn" component={SignInScreen} />
     <Stack.Screen name="SignUp" component={SignUpScreen} />
+    <Stack.Screen name="Home" component={HomePage} />
   </Stack.Navigator>
 );
 

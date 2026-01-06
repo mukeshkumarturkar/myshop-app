@@ -1,448 +1,279 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  FlatList,
-} from 'react-native';
-import { useDispatch, useSelector } from 'react-redux';
-import { apiClient } from '../services/api';
-import { setError } from '../store/authSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '../services/api';
 
 const ManageUsersScreen = ({ navigation }: any) => {
-  const dispatch = useDispatch();
-  const auth = useSelector((state: any) => state.auth);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [showAddUser, setShowAddUser] = useState(false);
-  const [users, setUsers] = useState<any[]>([]);
-  const [mobileCountryCode, setMobileCountryCode] = useState('91');
-  const [mobileNumber, setMobileNumber] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
+    phone_country_code: '91',
+    phone_number: '',
+  });
 
   useEffect(() => {
-    // In a real app, fetch existing users from backend
-    // For now, we'll just show the current user
-    if (auth.user) {
-      setUsers([
-        {
-          id: auth.user.uid,
-          email: auth.user.email,
-          name: auth.user.displayName,
-          isOwner: true,
-        },
-      ]);
-    }
-  }, [auth.user]);
+    loadUsers();
+  }, []);
 
-  const validateForm = () => {
-    if (!mobileNumber.trim() || mobileNumber.length < 10) {
-      Alert.alert('Validation Error', 'Valid mobile number (10 digits) is required');
-      return false;
-    }
-    if (password.length < 6) {
-      Alert.alert('Validation Error', 'Password must be at least 6 characters');
-      return false;
-    }
-    if (password !== confirmPassword) {
-      Alert.alert('Validation Error', 'Passwords do not match');
-      return false;
-    }
-    return true;
-  };
-
-  const handleAddUser = async () => {
-    if (!validateForm()) return;
-    if (!auth.user?.uid) {
-      Alert.alert('Error', 'Shop ID is missing');
-      return;
-    }
-
+  const loadUsers = async () => {
     setLoading(true);
     try {
-      console.log('🔴 ManageUsers: Creating new user account...');
-
-      // Create new user account via API
-      const userData = await apiClient.createUser(
-        auth.user.uid,
-        password,
-        confirmPassword
-      );
-
-      console.log('🔴 ManageUsers: User account created successfully');
-
-      // Reset form
-      setMobileNumber('');
-      setPassword('');
-      setConfirmPassword('');
-      setShowAddUser(false);
-
-      // Add new user to list
-      const newUser = {
-        id: userData.userId || `${mobileCountryCode}${mobileNumber}`,
-        mobile: `${mobileCountryCode}${mobileNumber}`,
-        isOwner: false,
-      };
-      setUsers([...users, newUser]);
-
-      Alert.alert('Success', `User account created successfully!\n\nUserId: ${mobileCountryCode}${mobileNumber}`);
+      const shopId = await AsyncStorage.getItem('shopId');
+      if (!shopId) {
+        alert('Shop ID not found');
+        return;
+      }
+      const response = await apiClient.getShopUsers(shopId);
+      setUsers(response.data || []);
     } catch (error: any) {
-      console.error('User creation error:', error);
-      const errorMessage = error.response?.data?.details || error.response?.data?.message || error.message || 'User creation failed';
-      dispatch(setError(errorMessage));
-      Alert.alert('User Creation Failed', errorMessage);
+      console.error('Error loading users:', error);
+      alert('Failed to load users');
     } finally {
       setLoading(false);
     }
   };
 
-  const renderUserItem = ({ item }: any) => (
-    <View style={styles.userCard}>
-      <View style={styles.userInfo}>
-        <Text style={styles.userName}>{item.email || item.mobile}</Text>
-        {item.name && <Text style={styles.userDetail}>{item.name}</Text>}
-        {item.isOwner && <Text style={styles.ownerBadge}>👑 Owner</Text>}
-      </View>
-      {!item.isOwner && (
-        <TouchableOpacity
-          onPress={() =>
-            Alert.alert(
-              'Remove User',
-              'Are you sure you want to remove this user?',
-              [
-                { text: 'Cancel' },
-                {
-                  text: 'Remove',
-                  onPress: () => {
-                    setUsers(users.filter((u) => u.id !== item.id));
-                    Alert.alert('Success', 'User removed');
-                  },
-                  style: 'destructive',
-                },
-              ]
-            )
-          }
-        >
-          <Text style={styles.removeButton}>Remove</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
+  const handleAddUser = async () => {
+    if (!newUser.name.trim() || !newUser.email.trim()) {
+      alert('Please enter name and email');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const shopId = await AsyncStorage.getItem('shopId');
+      if (!shopId) {
+        alert('Shop ID not found');
+        return;
+      }
+
+      await apiClient.addShopUser(shopId, {
+        name: newUser.name,
+        email: newUser.email,
+        phone_country_code: newUser.phone_country_code,
+        phone_number: newUser.phone_number,
+      });
+
+      alert('User added successfully');
+      setNewUser({
+        name: '',
+        email: '',
+        phone_country_code: '91',
+        phone_number: '',
+      });
+      loadUsers();
+    } catch (error: any) {
+      alert('Failed to add user');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveUser = async (userId: string) => {
+    if (window.confirm('Are you sure you want to remove this user?')) {
+      try {
+        await apiClient.removeShopUser(userId);
+        alert('User removed successfully');
+        loadUsers();
+      } catch (error: any) {
+        alert('Failed to remove user');
+      }
+    }
+  };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Manage Shop Users</Text>
-          <Text style={styles.subtitle}>Add team members to your shop</Text>
-        </View>
+    <div style={{
+      width: '100%',
+      minHeight: '100vh',
+      backgroundColor: '#f5f5f5',
+      padding: '20px',
+    }}>
+      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+        <h1 style={{
+          fontSize: '24px',
+          fontWeight: 'bold',
+          marginBottom: '20px',
+          color: '#333',
+        }}>
+          Manage Users
+        </h1>
 
-        <View style={styles.content}>
-          {/* Users List */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Authorized Users ({users.length})</Text>
-            <FlatList
-              data={users}
-              renderItem={renderUserItem}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-              nestedScrollEnabled={false}
-            />
-          </View>
+        <div style={{
+          backgroundColor: '#fff',
+          padding: '20px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        }}>
+          <h2 style={{
+            fontSize: '18px',
+            fontWeight: 'bold',
+            marginBottom: '15px',
+            color: '#333',
+          }}>
+            Authorized Users
+          </h2>
 
-          {/* Add User Section */}
-          {!showAddUser ? (
-            <TouchableOpacity
-              style={styles.addUserButton}
-              onPress={() => setShowAddUser(true)}
-            >
-              <Text style={styles.addUserButtonText}>+ Add New User</Text>
-            </TouchableOpacity>
+          {users && users.length > 0 ? (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+              }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f9f9f9', borderBottom: '2px solid #ddd' }}>
+                    <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#333' }}>Name</th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#333' }}>Email</th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#333' }}>Phone</th>
+                    <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: '#333' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((user: any) => (
+                    <tr key={user._id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                      <td style={{ padding: '12px', color: '#333' }}>{user.name}</td>
+                      <td style={{ padding: '12px', color: '#333' }}>{user.email}</td>
+                      <td style={{ padding: '12px', color: '#333' }}>
+                        {user.phone_country_code && user.phone_number
+                          ? `+${user.phone_country_code} ${user.phone_number}`
+                          : 'N/A'}
+                      </td>
+                      <td style={{ padding: '12px', textAlign: 'center' }}>
+                        <button
+                          onClick={() => handleRemoveUser(user._id)}
+                          style={{
+                            backgroundColor: '#e74c3c',
+                            color: '#fff',
+                            border: 'none',
+                            padding: '6px 12px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
-            <View style={styles.addUserForm}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Create New User Account</Text>
-                <TouchableOpacity onPress={() => setShowAddUser(false)}>
-                  <Text style={styles.closeButton}>✕</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Mobile Number *</Text>
-                <View style={styles.mobileInputContainer}>
-                  <TextInput
-                    style={[styles.input, styles.countryCode]}
-                    placeholder="+91"
-                    value={mobileCountryCode}
-                    onChangeText={setMobileCountryCode}
-                    maxLength={3}
-                    editable={!loading}
-                    keyboardType="number-pad"
-                    placeholderTextColor="#999"
-                  />
-                  <TextInput
-                    style={[styles.input, styles.mobileInput]}
-                    placeholder="10-digit mobile number"
-                    value={mobileNumber}
-                    onChangeText={setMobileNumber}
-                    keyboardType="phone-pad"
-                    editable={!loading}
-                    maxLength={10}
-                    placeholderTextColor="#999"
-                  />
-                </View>
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Password *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Minimum 6 characters"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  editable={!loading}
-                  placeholderTextColor="#999"
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Confirm Password *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Re-enter password"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry
-                  editable={!loading}
-                  placeholderTextColor="#999"
-                />
-              </View>
-
-              <View style={styles.passwordNote}>
-                <Text style={styles.passwordNoteText}>
-                  💡 User can login with their mobile number and password
-                </Text>
-              </View>
-
-              <View style={styles.buttonGroup}>
-                <TouchableOpacity
-                  style={[styles.cancelButton, loading && styles.disabledButton]}
-                  onPress={() => setShowAddUser(false)}
-                  disabled={loading}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.createButton, loading && styles.disabledButton]}
-                  onPress={handleAddUser}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={styles.createButtonText}>Create User</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
+            <p style={{ color: '#999', textAlign: 'center', padding: '20px' }}>
+              No users added yet
+            </p>
           )}
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </div>
+
+        <div style={{
+          backgroundColor: '#fff',
+          padding: '20px',
+          borderRadius: '8px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        }}>
+          <h2 style={{
+            fontSize: '18px',
+            fontWeight: 'bold',
+            marginBottom: '15px',
+            color: '#333',
+          }}>
+            Add New User
+          </h2>
+
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px', color: '#333' }}>
+              Name
+            </label>
+            <input
+              type="text"
+              value={newUser.name}
+              onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '14px',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px', color: '#333' }}>
+              Email
+            </label>
+            <input
+              type="email"
+              value={newUser.email}
+              onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '14px',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px', color: '#333' }}>
+              Phone Number
+            </label>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                padding: '10px',
+                backgroundColor: '#f9f9f9',
+              }}>
+                +{newUser.phone_country_code}
+              </div>
+              <input
+                type="tel"
+                placeholder="10-digit number"
+                value={newUser.phone_number}
+                onChange={(e) => setNewUser({ ...newUser, phone_number: e.target.value })}
+                maxLength={10}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                }}
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={handleAddUser}
+            disabled={loading}
+            style={{
+              width: '100%',
+              backgroundColor: '#6C63FF',
+              color: '#fff',
+              border: 'none',
+              padding: '12px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '14px',
+              opacity: loading ? 0.6 : 1,
+            }}
+          >
+            {loading ? 'Adding...' : 'Add User'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 20,
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 30,
-    backgroundColor: '#6C63FF',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#f0f0f0',
-    marginTop: 5,
-  },
-  content: {
-    padding: 20,
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 15,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  closeButton: {
-    fontSize: 24,
-    color: '#999',
-    padding: 5,
-  },
-  userCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#f9f9f9',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 5,
-  },
-  userDetail: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 5,
-  },
-  ownerBadge: {
-    fontSize: 12,
-    color: '#FF6B6B',
-    fontWeight: '600',
-  },
-  removeButton: {
-    color: '#FF6B6B',
-    fontSize: 13,
-    fontWeight: '600',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  addUserButton: {
-    backgroundColor: '#6C63FF',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  addUserButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  addUserForm: {
-    backgroundColor: '#f5f5f5',
-    padding: 20,
-    borderRadius: 8,
-    marginTop: 15,
-  },
-  formGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 14,
-    backgroundColor: '#fff',
-  },
-  mobileInputContainer: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  countryCode: {
-    flex: 0.25,
-  },
-  mobileInput: {
-    flex: 0.75,
-  },
-  passwordNote: {
-    backgroundColor: '#fff3cd',
-    padding: 12,
-    borderRadius: 6,
-    marginBottom: 20,
-    borderLeftWidth: 3,
-    borderLeftColor: '#ffc107',
-  },
-  passwordNoteText: {
-    fontSize: 12,
-    color: '#856404',
-    lineHeight: 18,
-  },
-  buttonGroup: {
-    flexDirection: 'row',
-    gap: 15,
-  },
-  cancelButton: {
-    flex: 0.4,
-    backgroundColor: '#fff',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  cancelButtonText: {
-    color: '#333',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  createButton: {
-    flex: 0.6,
-    backgroundColor: '#6C63FF',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  createButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-});
 
 export default ManageUsersScreen;
 
