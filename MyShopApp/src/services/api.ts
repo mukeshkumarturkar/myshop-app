@@ -19,6 +19,7 @@ class ApiClient {
       headers: {
         'Content-Type': 'application/json',
       },
+      withCredentials: false, // Set to false for cross-origin requests without credentials
     });
 
     // Load public access token from storage
@@ -93,15 +94,23 @@ class ApiClient {
   }
 
   private setupInterceptors() {
-    // Request interceptor - add auth tokens
+    // Request interceptor - add auth tokens and CORS headers
     this.client.interceptors.request.use(
       async (config) => {
         try {
+          // Add CORS headers for cross-origin requests
+          config.headers['Access-Control-Allow-Origin'] = '*';
+          config.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+          config.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
+
           const token = await AsyncStorage.getItem('authToken');
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
             console.log('🔴 API Client: Added private OAuth token to request');
           }
+
+          console.log('🔴 API Client: Request URL:', config.url);
+          console.log('🔴 API Client: Request Method:', config.method);
         } catch (error) {
           console.error('Error getting auth token:', error);
         }
@@ -121,6 +130,13 @@ class ApiClient {
           AsyncStorage.removeItem('publicAccessToken');
           this.publicAccessToken = null;
         }
+
+        // Log CORS errors
+        if (error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
+          console.error('🔴 API Client: Network/CORS Error - Check if API server is running and CORS is enabled');
+          console.error('🔴 API Client: Error details:', error);
+        }
+
         return Promise.reject(error);
       }
     );
@@ -203,15 +219,21 @@ class ApiClient {
   async createUser(shopId: string, password: string, confirmPassword: string) {
     try {
       console.log('🔴 API Client: Creating user for shop:', shopId);
+      console.log('🔴 API Client: Making sure shop has required fields before creating user');
+
       const token = await this.getPublicAccessToken();
+
+      const requestBody = {
+        shopId,
+        password,
+        confirmPassword,
+      };
+
+      console.log('🔴 API Client: Creating user with request body:', JSON.stringify(requestBody, null, 2));
 
       const response = await this.client.post(
         '/api/shops/user',
-        {
-          shopId,
-          password,
-          confirmPassword,
-        },
+        requestBody,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -220,9 +242,11 @@ class ApiClient {
       );
 
       console.log('🔴 API Client: User created successfully');
+      console.log('🔴 API Client: User response:', JSON.stringify(response.data, null, 2));
       return response.data;
     } catch (error: any) {
       console.error('🔴 API Client: Create user failed:', error.message);
+      console.error('🔴 API Client: Error response:', error.response?.data);
       throw error;
     }
   }
@@ -270,15 +294,33 @@ class ApiClient {
 
   /**
    * Create a new shop
-   * Requires private OAuth token
+   * Can use either:
+   * - Public Token (during signup flow, before user auth)
+   * - Private OAuth Token (after authenticated user)
    */
-  async createShop(data: any) {
+  async createShop(data: any, usePublicToken: boolean = false) {
     try {
       console.log('🔴 API Client: Creating shop');
-      const response = await this.client.post('/api/shops', data);
+      console.log('🔴 API Client: Request body:', JSON.stringify(data, null, 2));
+
+      let headers: any = {};
+
+      // If usePublicToken is true, add public token instead of relying on interceptor
+      if (usePublicToken) {
+        const publicToken = await this.getPublicAccessToken();
+        headers['Authorization'] = `Bearer ${publicToken}`;
+        console.log('🔴 API Client: Creating shop with PUBLIC TOKEN (signup flow)');
+      } else {
+        console.log('🔴 API Client: Creating shop with PRIVATE TOKEN (authenticated user)');
+      }
+
+      const response = await this.client.post('/api/shops', data, { headers });
+      console.log('🔴 API Client: Shop created successfully');
+      console.log('🔴 API Client: Response:', JSON.stringify(response.data, null, 2));
       return response.data;
     } catch (error: any) {
       console.error('🔴 API Client: Create shop failed:', error.message);
+      console.error('🔴 API Client: Error response:', error.response?.data);
       throw error;
     }
   }

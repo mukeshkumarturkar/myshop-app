@@ -53,18 +53,29 @@ const SignUpScreen = ({ navigation }: any) => {
       // Step 1: Get public access token WITHOUT credentials (PUBLIC MODE)
       console.log('🔴 SignUpScreen: Step 1 - Getting public access token (PUBLIC MODE)');
       const publicAuthResponse = await apiClient.authenticate();
-      console.log('🔴 SignUpScreen: Got public access token (no credentials needed)');
+      console.log('🔴 SignUpScreen: Got public access token');
 
-      // Step 2: Create the shop using shop data + password
-      console.log('🔴 SignUpScreen: Step 2 - Creating shop');
+      // Step 2: Create the shop using shop data + password with PUBLIC TOKEN
+      console.log('🔴 SignUpScreen: Step 2 - Creating shop with public token');
+
+      // Format shop data exactly as API expects (camelCase!)
       const shopSignupData = {
-        ...shopData,
+        name: shopData.name.trim(),
+        owner: shopData.owner.trim(),
+        email: shopData.email.trim(),
+        address: shopData.address.trim(),
+        mobileCountryCode: shopData.mobile_country_code, // ✅ camelCase!
+        mobileNumber: shopData.mobile_number, // ✅ camelCase!
         password: accountData.password,
       };
 
-      const createResponse = await apiClient.createShop(shopSignupData);
+      // Log exact request body for debugging
+      console.log('🔴 SignUpScreen: Creating shop with data:', JSON.stringify(shopSignupData, null, 2));
+
+      const createResponse = await apiClient.createShop(shopSignupData, true); // ✅ usePublicToken=true
       const shopId = createResponse.shopId || createResponse.id;
       console.log('🔴 SignUpScreen: Shop created with ID:', shopId);
+      console.log('🔴 SignUpScreen: Shop response:', JSON.stringify(createResponse, null, 2));
 
       // Step 3: Create user for the shop using PUBLIC access token
       console.log('🔴 SignUpScreen: Step 3 - Creating shop user with public token');
