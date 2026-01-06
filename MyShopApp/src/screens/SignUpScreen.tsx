@@ -50,25 +50,35 @@ const SignUpScreen = ({ navigation }: any) => {
 
     setLoading(true);
     try {
-      const signupData = {
+      // Step 1: First, authenticate to get public access token
+      console.log('🔴 SignUpScreen: Step 1 - Authenticating to get public access token');
+      const authResponse = await apiClient.authenticate(shopData.email, accountData.password);
+      console.log('🔴 SignUpScreen: Got public access token');
+
+      // Step 2: Create the shop using shop data + password
+      console.log('🔴 SignUpScreen: Step 2 - Creating shop');
+      const shopSignupData = {
         ...shopData,
         password: accountData.password,
       };
 
-      const response = await apiClient.createShop(signupData);
+      const createResponse = await apiClient.createShop(shopSignupData);
+      const shopId = createResponse.shopId || createResponse.id;
 
-      if (response.oauth_token) {
-        await AsyncStorage.setItem('authToken', response.oauth_token);
+      // Step 3: Create user for the shop
+      console.log('🔴 SignUpScreen: Step 3 - Creating shop user');
+      await apiClient.createUser(shopId, accountData.password, accountData.confirmPassword);
+
+      // Save shop details
+      if (shopId) {
+        await AsyncStorage.setItem('shopId', shopId);
       }
-      if (response.shopId) {
-        await AsyncStorage.setItem('shopId', response.shopId);
-      }
-      if (response.shop_name) {
-        await AsyncStorage.setItem('shopName', response.shop_name);
+      if (shopSignupData.name) {
+        await AsyncStorage.setItem('shopName', shopSignupData.name);
       }
 
       dispatch(setUser({
-        uid: response.shopId,
+        uid: shopId,
         email: shopData.email,
         displayName: shopData.owner,
         shopName: shopData.name,
@@ -77,6 +87,7 @@ const SignUpScreen = ({ navigation }: any) => {
       alert('Account created successfully! Redirecting to Sign In...');
       navigation.replace('SignIn');
     } catch (error: any) {
+      console.error('🔴 SignUpScreen: Account creation failed:', error);
       alert('Failed to create account: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
