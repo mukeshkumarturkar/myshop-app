@@ -114,66 +114,136 @@ class ApiClient {
 
   // QR Code endpoints
   async generateQRCode(shopId: string, domain?: string) {
-    return this.client.post(`/shops/${shopId}/generate-qr`, {}, {
-      params: domain ? { domain } : {},
-    });
+    try {
+      const response = await this.client.post(`/shops/${shopId}/generate-qr`, {}, {
+        params: domain ? { domain } : {},
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async getQRCode(shopId: string) {
-    return this.client.get(`/shops/${shopId}/qr`);
+    try {
+      const response = await this.client.get(`/shops/${shopId}/qr`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async getAllQRCodes() {
-    return this.client.get('/shops/qr/list');
+    try {
+      const response = await this.client.get('/shops/qr/list');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 
   // Catalog endpoints
   async getAllCatalogs() {
-    return this.client.get('/catalogs');
+    try {
+      const response = await this.client.get('/catalogs');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async createCatalog(data: any) {
-    return this.client.post('/catalogs', data);
+    try {
+      const response = await this.client.post('/catalogs', data);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async getCatalogById(id: string) {
-    return this.client.get(`/catalogs/${id}`);
+    try {
+      const response = await this.client.get(`/catalogs/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async updateCatalog(id: string, data: any) {
-    return this.client.put(`/catalogs/${id}`, data);
+    try {
+      const response = await this.client.put(`/catalogs/${id}`, data);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async deleteCatalog(id: string) {
-    return this.client.delete(`/catalogs/${id}`);
+    try {
+      const response = await this.client.delete(`/catalogs/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async getCatalogsByShopId(shopId: string) {
-    return this.client.get(`/catalogs/shop/${shopId}`);
+    try {
+      const response = await this.client.get(`/catalogs/shop/${shopId}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async getCatalogsByCategory(category: string) {
-    return this.client.get(`/catalogs/category/${category}`);
+    try {
+      const response = await this.client.get(`/catalogs/category/${category}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async getCatalogsByShopAndCategory(shopId: string, category: string) {
-    return this.client.get(`/catalogs/shop/${shopId}/category/${category}`);
+    try {
+      const response = await this.client.get(`/catalogs/shop/${shopId}/category/${category}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async getCatalogsByPriceRange(shopId: string, minPrice: number, maxPrice: number) {
-    return this.client.get('/catalogs/price-range', {
-      params: { shopId, minPrice, maxPrice },
-    });
+    try {
+      const response = await this.client.get('/catalogs/price-range', {
+        params: { shopId, minPrice, maxPrice },
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async getAvailableCatalogs(shopId: string) {
-    return this.client.get(`/catalogs/available/${shopId}`);
+    try {
+      const response = await this.client.get(`/catalogs/available/${shopId}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async updateCatalogStatus(id: string, status: string) {
-    return this.client.patch(`/catalogs/${id}/status`, {}, {
-      params: { status },
-    });
+    try {
+      const response = await this.client.patch(`/catalogs/${id}/status`, {}, {
+        params: { status },
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 }
 

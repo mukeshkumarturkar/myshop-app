@@ -14,6 +14,22 @@ export interface AuthState {
   error: string | null;
 }
 
+export interface AuthResponse {
+  oauth_token: string;
+  shopId: string;
+  shop_name?: string;
+  owner_name?: string;
+  email?: string;
+  userId?: string;
+  message?: string;
+}
+
+export interface CreateUserResponse {
+  status: string;
+  message: string;
+  userId: string;
+}
+
 // Shop Types
 export interface Theme {
   colors?: {
@@ -48,6 +64,52 @@ export interface ShopCreate {
   mobile_country_code?: string;
   mobile_number?: string;
   theme?: Theme;
+}
+
+// Catalog Types
+export interface Catalog {
+  _id: string;
+  name: string;
+  description?: string;
+  category: string;
+  shopId: string;
+  unit: string;
+  price?: Price;
+  availability?: Availability;
+  stock?: Stock;
+  status: 'ACTIVE' | 'INACTIVE' | 'DISCONTINUED';
+  createdAt?: string;
+  updatedAt?: string;
+  metadata?: any;
+}
+
+export interface Price {
+  currency: string;
+  value: number;
+  discountPercentage?: number;
+  discountedPrice?: number;
+}
+
+export interface Availability {
+  isAvailable: boolean;
+  startTime?: string;
+  endTime?: string;
+  availableDays?: string[];
+  seasonalAvailable?: boolean;
+  season?: string;
+}
+
+export interface Stock {
+  quantity: number;
+  unit: string;
+  reorderLevel: number;
+}
+
+// Error Types
+export interface ApiError {
+  status: string;
+  message: string;
+  details?: string;
 }
 
 export interface ShopUpdate {

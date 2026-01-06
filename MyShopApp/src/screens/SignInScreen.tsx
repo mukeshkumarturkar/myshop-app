@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useDispatch } from 'react-redux';
 import { apiClient } from '../services/api';
-import { setUser, setError } from '../store/authSlice';
+import { setUser, setError, setLoading as setLoadingAction } from '../store/authSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SignInScreen = ({ navigation }: any) => {
@@ -23,9 +23,9 @@ const SignInScreen = ({ navigation }: any) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [countryCode, setCountryCode] = useState('91');
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
-  const [verificationId, setVerificationId] = useState('');
 
   const handleEmailSignIn = async () => {
     if (!email.trim() || !password.trim()) {
@@ -37,23 +37,29 @@ const SignInScreen = ({ navigation }: any) => {
     try {
       console.log('🔴 SignIn: Attempting email/password authentication...');
 
-      // Call API to authenticate
+      // Call API to authenticate using email
       const response = await apiClient.authenticate(email, password);
       console.log('🔴 SignIn: Authentication successful');
 
-      // Save user data
-      await AsyncStorage.setItem('shopId', response.data.shopId);
-      await AsyncStorage.setItem('shopName', response.data.shopName);
-      await AsyncStorage.setItem('ownerName', response.data.ownerName);
-      await AsyncStorage.setItem('email', response.data.email);
-      await AsyncStorage.setItem('userId', response.data.userId);
+      // Save auth token
+      if (response.oauth_token) {
+        await AsyncStorage.setItem('authToken', response.oauth_token);
+      }
 
+      // Save user and shop data
+      if (response.shopId) await AsyncStorage.setItem('shopId', response.shopId);
+      if (response.shop_name) await AsyncStorage.setItem('shopName', response.shop_name);
+      if (response.owner_name) await AsyncStorage.setItem('ownerName', response.owner_name);
+      if (response.email) await AsyncStorage.setItem('email', response.email);
+      if (response.userId) await AsyncStorage.setItem('userId', response.userId);
+
+      // Update Redux state
       dispatch(
         setUser({
-          uid: response.data.userId,
-          email: response.data.email,
-          displayName: response.data.ownerName,
-          shopName: response.data.shopName,
+          uid: response.userId || response.shopId,
+          email: response.email || email,
+          displayName: response.owner_name || 'Shop Owner',
+          shopName: response.shop_name,
         })
       );
 
@@ -69,34 +75,54 @@ const SignInScreen = ({ navigation }: any) => {
     }
   };
 
-  const handlePhoneOTP = async () => {
+  const handlePhoneSignIn = async () => {
     if (!phoneNumber.trim() || phoneNumber.length < 10) {
-      Alert.alert('Validation Error', 'Please enter a valid phone number');
+      Alert.alert('Validation Error', 'Please enter a valid 10-digit phone number');
       return;
     }
 
     setLoading(true);
     try {
-      console.log('🔴 SignIn: Sending OTP to phone...');
-      Alert.alert('OTP Feature', 'Phone OTP authentication will be implemented with a dedicated OTP service. For now, please use Email/Password.');
+      console.log('🔴 SignIn: Attempting phone authentication...');
+
+      // Authenticate using phone number as userId
+      const userId = `${countryCode}${phoneNumber}`;
+
+      // For now, show a message that OTP is not yet implemented
+      // In production, this would trigger an OTP send
+      Alert.alert(
+        'Feature Coming Soon',
+        'Phone OTP authentication is currently being integrated with Firebase/OTP service.\n\nFor now, please use Email & Password login.\n\nUserId format: ' + userId
+      );
       setLoading(false);
     } catch (error: any) {
-      console.error('OTP error:', error);
-      Alert.alert('OTP Error', error.message);
+      console.error('Phone auth error:', error);
+      Alert.alert('Error', error.message || 'Authentication failed');
       setLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
+    Alert.alert(
+      'Google Sign-In',
+      'Google authentication will be configured with Google Cloud Console and Firebase.\n\nFor now, please use Email & Password login.'
+    );
+  };
+
+  const handleVerifyOTP = async () => {
+    if (!otp.trim() || otp.length < 6) {
+      Alert.alert('Validation Error', 'Please enter a valid 6-digit OTP');
+      return;
+    }
+
     setLoading(true);
     try {
-      console.log('🔴 SignIn: Attempting Google Sign-In...');
-      // For production, implement using @react-native-google-signin/google-signin package
-      Alert.alert('Google Sign-In', 'Google authentication will be configured with Google Cloud Console. Coming soon!');
+      console.log('🔴 SignIn: Verifying OTP...');
+      Alert.alert('Feature Coming Soon', 'OTP verification will be implemented soon');
       setLoading(false);
     } catch (error: any) {
-      console.error('Google sign in error:', error);
-      Alert.alert('Google Sign-In Failed', error.message);
+      console.error('OTP verification error:', error);
+      Alert.alert('Verification Failed', error.message);
       setLoading(false);
     }
   };
@@ -118,7 +144,10 @@ const SignInScreen = ({ navigation }: any) => {
               styles.methodButton,
               signInMethod === 'email' && styles.activeMethodButton,
             ]}
-            onPress={() => setSignInMethod('email')}
+            onPress={() => {
+              setSignInMethod('email');
+              setOtpSent(false);
+            }}
           >
             <Text
               style={[
@@ -126,7 +155,7 @@ const SignInScreen = ({ navigation }: any) => {
                 signInMethod === 'email' && styles.activeMethodButtonText,
               ]}
             >
-              Email & Password
+              📧 Email
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -134,7 +163,10 @@ const SignInScreen = ({ navigation }: any) => {
               styles.methodButton,
               signInMethod === 'phone' && styles.activeMethodButton,
             ]}
-            onPress={() => setSignInMethod('phone')}
+            onPress={() => {
+              setSignInMethod('phone');
+              setOtpSent(false);
+            }}
           >
             <Text
               style={[
@@ -142,7 +174,7 @@ const SignInScreen = ({ navigation }: any) => {
                 signInMethod === 'phone' && styles.activeMethodButtonText,
               ]}
             >
-              Phone OTP
+              📱 Phone
             </Text>
           </TouchableOpacity>
         </View>
@@ -150,6 +182,7 @@ const SignInScreen = ({ navigation }: any) => {
         <View style={styles.form}>
           {signInMethod === 'email' ? (
             <>
+              {/* EMAIL SIGN IN */}
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Email Address</Text>
                 <TextInput
@@ -160,6 +193,7 @@ const SignInScreen = ({ navigation }: any) => {
                   keyboardType="email-address"
                   editable={!loading}
                   autoCapitalize="none"
+                  placeholderTextColor="#999"
                 />
               </View>
 
@@ -172,6 +206,7 @@ const SignInScreen = ({ navigation }: any) => {
                   onChangeText={setPassword}
                   secureTextEntry
                   editable={!loading}
+                  placeholderTextColor="#999"
                 />
               </View>
 
@@ -189,13 +224,14 @@ const SignInScreen = ({ navigation }: any) => {
             </>
           ) : (
             <>
+              {/* PHONE OTP SIGN IN */}
               {!otpSent ? (
                 <>
                   <View style={styles.formGroup}>
-                    <Text style={styles.label}>Phone Number</Text>
+                    <Text style={styles.label}>Mobile Number</Text>
                     <View style={styles.phoneInputContainer}>
                       <View style={styles.countryCodeBox}>
-                        <Text style={styles.countryCode}>+91</Text>
+                        <Text style={styles.countryCode}>+{countryCode}</Text>
                       </View>
                       <TextInput
                         style={styles.phoneInput}
@@ -205,13 +241,14 @@ const SignInScreen = ({ navigation }: any) => {
                         keyboardType="phone-pad"
                         editable={!loading}
                         maxLength={10}
+                        placeholderTextColor="#999"
                       />
                     </View>
                   </View>
 
                   <TouchableOpacity
                     style={[styles.signInButton, loading && styles.disabledButton]}
-                    onPress={handlePhoneOTP}
+                    onPress={handlePhoneSignIn}
                     disabled={loading}
                   >
                     {loading ? (
@@ -223,6 +260,12 @@ const SignInScreen = ({ navigation }: any) => {
                 </>
               ) : (
                 <>
+                  <View style={styles.otpInfo}>
+                    <Text style={styles.otpInfoText}>
+                      OTP sent to +{countryCode}{phoneNumber}
+                    </Text>
+                  </View>
+
                   <View style={styles.formGroup}>
                     <Text style={styles.label}>Enter OTP</Text>
                     <TextInput
@@ -233,11 +276,13 @@ const SignInScreen = ({ navigation }: any) => {
                       keyboardType="number-pad"
                       editable={!loading}
                       maxLength={6}
+                      placeholderTextColor="#999"
                     />
                   </View>
 
                   <TouchableOpacity
                     style={[styles.signInButton, loading && styles.disabledButton]}
+                    onPress={handleVerifyOTP}
                     disabled={loading}
                   >
                     {loading ? (
@@ -248,7 +293,7 @@ const SignInScreen = ({ navigation }: any) => {
                   </TouchableOpacity>
 
                   <TouchableOpacity onPress={() => setOtpSent(false)}>
-                    <Text style={styles.changePhoneText}>Change phone number</Text>
+                    <Text style={styles.changePhoneText}>← Use different number</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -262,19 +307,20 @@ const SignInScreen = ({ navigation }: any) => {
           </View>
 
           <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignIn}>
-            <Text style={styles.googleButtonText}>Sign In with Google</Text>
+            <Text style={styles.googleButtonText}>🔐 Sign In with Google</Text>
           </TouchableOpacity>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Don't have an account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-              <Text style={styles.footerLink}>Sign Up</Text>
+              <Text style={styles.footerLink}>Create Shop Account</Text>
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
+};
 };
 
 const styles = StyleSheet.create({
@@ -311,7 +357,7 @@ const styles = StyleSheet.create({
   },
   methodButton: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 15,
     borderWidth: 2,
     borderColor: '#ddd',
@@ -323,7 +369,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0edff',
   },
   methodButtonText: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#666',
     fontWeight: '600',
   },
@@ -381,6 +427,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     backgroundColor: '#f9f9f9',
   },
+  otpInfo: {
+    backgroundColor: '#d4edda',
+    padding: 12,
+    borderRadius: 6,
+    marginBottom: 20,
+    borderLeftWidth: 3,
+    borderLeftColor: '#28a745',
+  },
+  otpInfoText: {
+    fontSize: 13,
+    color: '#155724',
+    fontWeight: '500',
+  },
   signInButton: {
     backgroundColor: '#6C63FF',
     paddingVertical: 14,
@@ -425,6 +484,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 20,
+    backgroundColor: '#f9f9f9',
   },
   googleButtonText: {
     color: '#333',
