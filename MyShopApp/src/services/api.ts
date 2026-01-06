@@ -140,7 +140,7 @@ class ApiClient {
       const isPasswordMode = userIdOrShopId && password;
 
       if (isPasswordMode) {
-        // MODE 2: Password-verified authentication
+        // MODE 2: Password-verified authentication (Sign In)
         console.log('🔴 API Client: PASSWORD MODE - Authenticating user:', userIdOrShopId);
         const response = await this.client.post('/api/shops/auth', {
           userId: userIdOrShopId,
@@ -161,12 +161,23 @@ class ApiClient {
         console.log('🔴 API Client: PASSWORD MODE - Authentication successful');
         return data;
       } else {
-        // MODE 1: Public mode - get public token without credentials
-        // IMPORTANT: Send EMPTY BODY {} - no userId, no password!
+        // MODE 1: Public mode - get public token without password
+        // Can optionally include shopId to get token for specific shop
         console.log('🔴 API Client: PUBLIC MODE - Getting public access token');
-        console.log('🔴 API Client: PUBLIC MODE - Sending EMPTY BODY (no credentials)');
 
-        const response = await this.client.post('/api/shops/auth', {});
+        const requestBody: any = {};
+
+        // If shopId provided, include it in the request
+        if (userIdOrShopId) {
+          requestBody.shopId = userIdOrShopId;
+          console.log('🔴 API Client: PUBLIC MODE - For shop:', userIdOrShopId);
+        } else {
+          console.log('🔴 API Client: PUBLIC MODE - Generic public token (no shopId)');
+        }
+
+        console.log('🔴 API Client: PUBLIC MODE - Request body:', JSON.stringify(requestBody));
+
+        const response = await this.client.post('/api/shops/auth', requestBody);
 
         const data = response.data;
 
@@ -176,6 +187,7 @@ class ApiClient {
         }
 
         console.log('🔴 API Client: PUBLIC MODE - Public access token obtained');
+        console.log('🔴 API Client: PUBLIC MODE - Token expires in:', data.publicTokenExpiresInDays, 'days');
         return data;
       }
     } catch (error: any) {
