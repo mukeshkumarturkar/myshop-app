@@ -531,7 +531,7 @@ class ApiClient {
   async getCatalogsByShopId(shopId: string) {
     try {
       console.log('🔴 API Client: Getting catalogs for shop:', shopId);
-      const response = await this.client.get(`/api/catalogs/search/shop/${shopId}`);
+      const response = await this.client.get(`/api/catalogs/shop/${shopId}`);
       return response.data;
     } catch (error: any) {
       console.error('🔴 API Client: Get catalogs by shop failed:', error.message);

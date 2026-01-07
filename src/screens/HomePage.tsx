@@ -43,7 +43,7 @@ export default function HomePage({ route, navigation }: any) {
       console.log('🔴 HomePage: Shop data received from params:', route.params.shop);
       setShopData(route.params.shop);
       setLoading(false);
-      // Load catalogs for this shop
+      // Load catalogs separately for this shop
       if (route.params.shop.id) {
         loadCatalogs(route.params.shop.id);
       }
@@ -51,7 +51,7 @@ export default function HomePage({ route, navigation }: any) {
   }, [route?.params]);
 
   useEffect(() => {
-    // Load catalogs when shop data is available
+    // Load catalogs when shop data is loaded from API
     if (shopData?.id && !route?.params?.shop) {
       loadCatalogs(shopData.id);
     }
@@ -83,6 +83,7 @@ export default function HomePage({ route, navigation }: any) {
         console.log('🔴 HomePage: About to call setShopData with:', { name: shop.name, owner: shop.owner });
         setShopData(shop);
         console.log('🔴 HomePage: setShopData called successfully');
+        // Catalogs will be loaded separately by useEffect watching shopData
       } else {
         console.log('🔴 HomePage: No shopId found');
       }
