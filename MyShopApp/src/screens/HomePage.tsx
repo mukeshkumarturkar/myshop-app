@@ -1,204 +1,404 @@
 import React, { useState, useEffect } from 'react';
+import { View, Text, Image, TouchableOpacity, ScrollView, StyleSheet, Alert, Linking, Share, Platform } from 'react-native';
 import { useDispatch } from 'react-redux';
 import { setUser } from '../store/authSlice';
+import { apiClient } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 console.log('🔴 HomePage.tsx: Module loaded');
 
-export default function HomePage() {
+export default function HomePage({ route, navigation }: any) {
   console.log('🔴 HomePage: Rendering HomePage component');
 
   const dispatch = useDispatch();
-  const [email, setEmail] = useState('test@example.com');
-  const [password, setPassword] = useState('password123');
-  const [loading, setLoading] = useState(false);
-  const [renderCount, setRenderCount] = useState(0);
+  const [shopData, setShopData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     console.log('🔴 HomePage: Component mounted');
-    setRenderCount(prev => prev + 1);
+    loadShopData();
+
     return () => {
       console.log('🔴 HomePage: Component unmounted');
     };
   }, []);
 
-  const handleLogin = (e: any) => {
-    console.log('🔴 HomePage: handleLogin called', { email, password });
-    e.preventDefault();
-    setLoading(true);
-
-    setTimeout(() => {
-      console.log('🔴 HomePage: Dispatching setUser action');
-      dispatch(
-        setUser({
-          uid: 'demo-' + Date.now(),
-          email: email,
-          displayName: email.split('@')[0],
-        })
-      );
-      console.log('🔴 HomePage: setUser action dispatched successfully');
+  useEffect(() => {
+    // Check if shop data was passed from SignUpScreen
+    if (route?.params?.shop) {
+      console.log('🔴 HomePage: Shop data received from params:', route.params.shop);
+      setShopData(route.params.shop);
       setLoading(false);
-    }, 500);
+    }
+  }, [route?.params]);
+
+  const loadShopData = async () => {
+    try {
+      // First check if we got shop data from params
+      if (route?.params?.shop) {
+        return; // Already handled in useEffect above
+      }
+
+      // Otherwise, try to load from AsyncStorage
+      const shopId = await AsyncStorage.getItem('shopId');
+      console.log('🔴 HomePage: Loaded shopId from storage:', shopId);
+
+      if (shopId) {
+        console.log('🔴 HomePage: Fetching shop details for ID:', shopId);
+        const shop = await apiClient.getShop(shopId);
+        console.log('🔴 HomePage: Fetched shop details:', shop);
+        setShopData(shop);
+      } else {
+        console.log('🔴 HomePage: No shopId found');
+      }
+    } catch (error) {
+      console.error('🔴 HomePage: Error loading shop data:', error);
+      Alert.alert('Error', 'Failed to load shop details');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => {
-    console.log('🔴 HomePage: Render count:', renderCount);
-  }, [renderCount]);
+  const handleShareQR = async () => {
+    if (!shopData?.qrCodeUrl) {
+      Alert.alert('Error', 'QR code URL not available');
+      return;
+    }
+
+    try {
+      const message = `Check out my shop: ${shopData.name}\nOwner: ${shopData.owner}\n\nScan QR code or visit: ${shopData.qrCodeUrl}`;
+
+      await Share.share({
+        message: message,
+        title: `${shopData.name} - Shop Menu`,
+        url: shopData.qrCodeUrl,
+      });
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
+  const handleShareWhatsApp = async () => {
+    if (!shopData?.qrCodeUrl) {
+      Alert.alert('Error', 'QR code URL not available');
+      return;
+    }
+
+    try {
+      const message = `Check out my shop: ${shopData.name}\nOwner: ${shopData.owner}\n\nVisit: ${shopData.qrCodeUrl}`;
+      const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
+
+      const canOpen = await Linking.canOpenURL(whatsappUrl);
+      if (canOpen) {
+        await Linking.openURL(whatsappUrl);
+      } else {
+        Alert.alert('WhatsApp not installed', 'Please install WhatsApp to share');
+      }
+    } catch (error) {
+      console.error('Error opening WhatsApp:', error);
+      Alert.alert('Error', 'Failed to open WhatsApp');
+    }
+  };
+
+  const handleShareTelegram = async () => {
+    if (!shopData?.qrCodeUrl) {
+      Alert.alert('Error', 'QR code URL not available');
+      return;
+    }
+
+    try {
+      const message = `Check out my shop: ${shopData.name}\nOwner: ${shopData.owner}\n\nVisit: ${shopData.qrCodeUrl}`;
+      const telegramUrl = `tg://msg?text=${encodeURIComponent(message)}`;
+
+      const canOpen = await Linking.canOpenURL(telegramUrl);
+      if (canOpen) {
+        await Linking.openURL(telegramUrl);
+      } else {
+        Alert.alert('Telegram not installed', 'Please install Telegram to share');
+      }
+    } catch (error) {
+      console.error('Error opening Telegram:', error);
+      Alert.alert('Error', 'Failed to open Telegram');
+    }
+  };
+
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem('shopId');
+    await AsyncStorage.removeItem('authToken');
+    dispatch(setUser(null));
+    navigation?.replace('SignIn');
+  };
 
   console.log('🔴 HomePage: About to return JSX');
 
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.loadingText}>Loading shop details...</Text>
+      </View>
+    );
+  }
+
+  if (!shopData) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>No shop data available</Text>
+        <TouchableOpacity style={styles.button} onPress={() => navigation?.replace('SignIn')}>
+          <Text style={styles.buttonText}>Go to Sign In</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
-    <div style={{
-      width: '100%',
-      height: '100vh',
-      margin: 0,
-      padding: 0,
-      backgroundColor: '#f0f0f0',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      fontFamily: 'Arial, sans-serif',
-    }}>
+    <ScrollView style={styles.container}>
       {/* Header */}
-      <h1 style={{
-        fontSize: '48px',
-        color: '#6C63FF',
-        margin: '0 0 10px 0',
-        fontWeight: 'bold',
-      }}>
-        MyShop
-      </h1>
-      <p style={{
-        fontSize: '18px',
-        color: '#666',
-        margin: '0 0 40px 0',
-      }}>
-        Manage Your Shop & Catalog
-      </p>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>{shopData.name || 'My Shop'}</Text>
+        <Text style={styles.headerSubtitle}>Owner: {shopData.owner || 'N/A'}</Text>
+      </View>
 
-      {/* Login Form */}
-      <form onSubmit={handleLogin} style={{
-        backgroundColor: 'white',
-        padding: '40px',
-        borderRadius: '10px',
-        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-        width: '100%',
-        maxWidth: '400px',
-      }}>
-        {/* Email Input */}
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{
-            display: 'block',
-            marginBottom: '8px',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            color: '#333',
-          }}>
-            Email
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '12px',
-              fontSize: '14px',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              boxSizing: 'border-box',
-              fontFamily: 'Arial, sans-serif',
-            }}
-          />
-        </div>
+      {/* Shop Details Card */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Shop Information</Text>
 
-        {/* Password Input */}
-        <div style={{ marginBottom: '30px' }}>
-          <label style={{
-            display: 'block',
-            marginBottom: '8px',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            color: '#333',
-          }}>
-            Password
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '12px',
-              fontSize: '14px',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              boxSizing: 'border-box',
-              fontFamily: 'Arial, sans-serif',
-            }}
-          />
-        </div>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Shop Name:</Text>
+          <Text style={styles.detailValue}>{shopData.name}</Text>
+        </View>
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '12px',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            color: 'white',
-            backgroundColor: '#6C63FF',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.7 : 1,
-          }}
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Owner:</Text>
+          <Text style={styles.detailValue}>{shopData.owner}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Address:</Text>
+          <Text style={styles.detailValue}>{shopData.address}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Email:</Text>
+          <Text style={styles.detailValue}>{shopData.email}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Mobile:</Text>
+          <Text style={styles.detailValue}>
+            +{shopData.mobileCountryCode} {shopData.mobileNumber}
+          </Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Shop ID:</Text>
+          <Text style={styles.detailValue}>{shopData.id}</Text>
+        </View>
+      </View>
+
+      {/* QR Code Card */}
+      {shopData.qrCode && (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Shop QR Code</Text>
+
+          <View style={styles.qrContainer}>
+            <Image
+              source={{ uri: shopData.qrCode }}
+              style={styles.qrCode}
+              resizeMode="contain"
+            />
+          </View>
+
+          {shopData.qrCodeUrl && (
+            <Text style={styles.qrUrl}>{shopData.qrCodeUrl}</Text>
+          )}
+
+          {/* Share Buttons */}
+          <View style={styles.shareButtonsContainer}>
+            <TouchableOpacity style={styles.shareButton} onPress={handleShareQR}>
+              <Text style={styles.shareButtonText}>📤 Share</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.shareButton, styles.whatsappButton]} onPress={handleShareWhatsApp}>
+              <Text style={styles.shareButtonText}>💬 WhatsApp</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.shareButton, styles.telegramButton]} onPress={handleShareTelegram}>
+              <Text style={styles.shareButtonText}>✈️ Telegram</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Action Buttons */}
+      <View style={styles.actionsContainer}>
+        <TouchableOpacity
+          style={[styles.button, styles.primaryButton]}
+          onPress={() => navigation?.navigate('ManageShop')}
         >
-          {loading ? 'Signing In...' : 'Sign In'}
-        </button>
+          <Text style={styles.buttonText}>Manage Shop</Text>
+        </TouchableOpacity>
 
-        {/* Demo Info */}
-        <p style={{
-          marginTop: '20px',
-          fontSize: '12px',
-          color: '#999',
-          textAlign: 'center',
-        }}>
-          🚀 Demo Mode: Use any email and password
-        </p>
-      </form>
+        <TouchableOpacity
+          style={[styles.button, styles.secondaryButton]}
+          onPress={handleLogout}
+        >
+          <Text style={[styles.buttonText, styles.secondaryButtonText]}>Logout</Text>
+        </TouchableOpacity>
+      </View>
 
-      {/* Success Message */}
-      <div style={{
-        marginTop: '30px',
-        fontSize: '14px',
-        color: '#6C63FF',
-        fontWeight: 'bold',
-      }}>
-        ✓ App is running successfully!
-      </div>
+      {/* Debug Info */}
+      <View style={styles.debugContainer}>
+        <Text style={styles.debugText}>✓ Shop loaded successfully</Text>
+      </View>
+    </ScrollView>
+  );
+}
 
-      {/* Debug Overlay - Bottom Right Corner */}
-      <div style={{
-        position: 'fixed',
-        bottom: '10px',
-        right: '10px',
-        backgroundColor: '#000',
-        color: '#0f0',
-        padding: '10px 15px',
-        borderRadius: '4px',
-        fontSize: '11px',
-        fontFamily: 'monospace',
-        maxWidth: '250px',
-        boxShadow: '0 0 10px rgba(0,255,0,0.3)',
-        border: '1px solid #0f0',
-        zIndex: 9999,
-      }}>
-        <div>🔴 HomePage: OK</div>
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 100,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#ff0000',
+    textAlign: 'center',
+    marginTop: 100,
+    marginBottom: 20,
+  },
+  header: {
+    backgroundColor: '#6C63FF',
+    padding: 30,
+    paddingTop: 60,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 5,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: '#f0f0f0',
+  },
+  card: {
+    backgroundColor: '#fff',
+    margin: 15,
+    padding: 20,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    paddingBottom: 10,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    flexWrap: 'wrap',
+  },
+  detailLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    width: 120,
+  },
+  detailValue: {
+    fontSize: 14,
+    color: '#333',
+    flex: 1,
+  },
+  qrContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  qrCode: {
+    width: 250,
+    height: 250,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+  },
+  qrUrl: {
+    fontSize: 12,
+    color: '#6C63FF',
+    textAlign: 'center',
+    marginBottom: 15,
+  },
+  shareButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  shareButton: {
+    flex: 1,
+    backgroundColor: '#6C63FF',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  whatsappButton: {
+    backgroundColor: '#25D366',
+  },
+  telegramButton: {
+    backgroundColor: '#0088cc',
+  },
+  shareButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  actionsContainer: {
+    padding: 15,
+    gap: 10,
+  },
+  button: {
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  primaryButton: {
+    backgroundColor: '#6C63FF',
+  },
+  secondaryButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#6C63FF',
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  secondaryButtonText: {
+    color: '#6C63FF',
+  },
+  debugContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  debugText: {
+    fontSize: 12,
+    color: '#6C63FF',
+    fontWeight: '600',
+  },
+});
         <div>Render #{renderCount}</div>
         <div>Email: {email.substring(0, 10)}...</div>
         <div>Loading: {loading ? 'YES' : 'NO'}</div>

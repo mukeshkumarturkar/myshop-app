@@ -90,6 +90,10 @@ const SignUpScreen = ({ navigation }: any) => {
         await AsyncStorage.setItem('shopName', shopSignupData.name);
       }
 
+      // Fetch full shop details after creation
+      const shopDetails = await apiClient.getShop(shopId);
+      console.log('🔴 SignUpScreen: Fetched shop details:', JSON.stringify(shopDetails, null, 2));
+
       dispatch(setUser({
         uid: shopId,
         email: shopData.email,
@@ -97,8 +101,9 @@ const SignUpScreen = ({ navigation }: any) => {
         shopName: shopData.name,
       }));
 
-      alert('Account created successfully! Redirecting to Sign In...');
-      navigation.replace('SignIn');
+      alert('Account created successfully! Redirecting to Home...');
+      // Navigate to HomePage with shop details
+      navigation.replace('Home', { shop: shopDetails });
     } catch (error: any) {
       console.error('🔴 SignUpScreen: Account creation failed:', error);
       alert('Failed to create account: ' + (error.response?.data?.message || error.message));
