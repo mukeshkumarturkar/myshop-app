@@ -51,6 +51,8 @@ const SignInScreen = ({ navigation }: any) => {
       if (response.shop_name) {
         await AsyncStorage.setItem('shopName', response.shop_name);
       }
+      // Store email for session restoration
+      await AsyncStorage.setItem('userEmail', response.email || email);
 
       dispatch(setUser({
         uid: response.userId || response.shopId,

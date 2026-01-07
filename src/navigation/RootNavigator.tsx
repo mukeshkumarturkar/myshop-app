@@ -23,19 +23,29 @@ const CatalogStack = createNativeStackNavigator();
 const ShopStack = createNativeStackNavigator();
 
 // Auth Stack
-const AuthStack = () => (
-  <Stack.Navigator
-    initialRouteName="SignIn"
-    screenOptions={{
-      headerShown: false,
-      animationEnabled: true,
-    }}
-  >
-    <Stack.Screen name="SignIn" component={SignInScreen} />
-    <Stack.Screen name="SignUp" component={SignUpScreen} />
-    <Stack.Screen name="Home" component={HomePage} />
-  </Stack.Navigator>
-);
+const AuthStack = () => {
+  console.log('🟢🟢🟢 AuthStack: Rendering AuthStack with HomePage component:', HomePage.name);
+  console.log('🟢🟢🟢 AuthStack: HomePage component reference:', HomePage);
+  return (
+    <Stack.Navigator
+      initialRouteName="SignIn"
+      screenOptions={{
+        headerShown: false,
+        animationEnabled: true,
+      }}
+    >
+      <Stack.Screen name="SignIn" component={SignInScreen} />
+      <Stack.Screen name="SignUp" component={SignUpScreen} />
+      <Stack.Screen
+        name="Home"
+        component={HomePage}
+        listeners={{
+          focus: () => console.log('🟢🟢🟢 AuthStack: Home screen focused'),
+        }}
+      />
+    </Stack.Navigator>
+  );
+};
 
 // Catalog Stack
 const CatalogStackNavigator = () => (
@@ -52,20 +62,30 @@ const CatalogStackNavigator = () => (
 );
 
 // Shop Stack
-const ShopStackNavigator = () => (
-  <ShopStack.Navigator
-    initialRouteName="HomePage"
-    screenOptions={{
-      headerShown: false,
-      animationEnabled: true,
-    }}
-  >
-    <ShopStack.Screen name="HomePage" component={HomePage} />
-    <ShopStack.Screen name="ManageShopScreen" component={ManageShopScreen} />
-    <ShopStack.Screen name="EditShop" component={EditShopScreen} />
-    <ShopStack.Screen name="CatalogList" component={CatalogStackNavigator} />
-  </ShopStack.Navigator>
-);
+const ShopStackNavigator = () => {
+  console.log('🔵🔵🔵 ShopStackNavigator: Rendering ShopStack with HomePage component:', HomePage.name);
+  console.log('🔵🔵🔵 ShopStackNavigator: HomePage component reference:', HomePage);
+  return (
+    <ShopStack.Navigator
+      initialRouteName="HomePage"
+      screenOptions={{
+        headerShown: false,
+        animationEnabled: true,
+      }}
+    >
+      <ShopStack.Screen
+        name="HomePage"
+        component={HomePage}
+        listeners={{
+          focus: () => console.log('🔵🔵🔵 ShopStack: HomePage screen focused'),
+        }}
+      />
+      <ShopStack.Screen name="ManageShopScreen" component={ManageShopScreen} />
+      <ShopStack.Screen name="EditShop" component={EditShopScreen} />
+      <ShopStack.Screen name="CatalogList" component={CatalogStackNavigator} />
+    </ShopStack.Navigator>
+  );
+};
 
 // Main App Stack with Bottom Tabs
 const MainApp = () => (
@@ -110,33 +130,72 @@ const MainApp = () => (
 const RootNavigator = () => {
   const isSignedIn = useSelector((state: RootState) => state.auth.isSignedIn);
 
-  console.log('RootNavigator rendering, isSignedIn:', isSignedIn);
+  console.log('🟣🟣🟣 RootNavigator rendering, isSignedIn:', isSignedIn);
+  console.log('🟣🟣🟣 RootNavigator: Will render:', isSignedIn ? 'MainApp (with ShopStack)' : 'Auth Stack');
+  console.log('🟣🟣🟣 RootNavigator: HomePage component available:', !!HomePage);
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{ headerShown: false }}
-        initialRouteName={isSignedIn ? 'MainApp' : 'Auth'}
+    <div style={{
+      width: '100%',
+      height: '100vh',
+      visibility: 'visible',
+      opacity: 1,
+      position: 'relative',
+      zIndex: 1,
+      backgroundColor: '#fff',
+    }}>
+      <NavigationContainer
+        documentTitle={{
+          formatter: (options, route) => `MyShop - ${route?.name || 'Home'}`,
+        }}
       >
-        {isSignedIn ? (
-          <Stack.Screen
-            name="MainApp"
-            component={MainApp}
-            options={{
-              animationEnabled: false,
-            }}
-          />
-        ) : (
-          <Stack.Screen
-            name="Auth"
-            component={AuthStack}
-            options={{
-              animationEnabled: false,
-            }}
-          />
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+        <Stack.Navigator
+          screenOptions={{
+            headerShown: false,
+            contentStyle: {
+              backgroundColor: '#fff',
+              visibility: 'visible',
+              opacity: 1,
+            }
+          }}
+          initialRouteName={isSignedIn ? 'MainApp' : 'Auth'}
+        >
+          {isSignedIn ? (
+            <Stack.Screen
+              name="MainApp"
+              component={MainApp}
+              options={{
+                animationEnabled: false,
+                contentStyle: {
+                  backgroundColor: '#fff',
+                  visibility: 'visible',
+                  opacity: 1,
+                }
+              }}
+              listeners={{
+                focus: () => console.log('🟣🟣🟣 RootNavigator: MainApp focused'),
+              }}
+            />
+          ) : (
+            <Stack.Screen
+              name="Auth"
+              component={AuthStack}
+              options={{
+                animationEnabled: false,
+                contentStyle: {
+                  backgroundColor: '#fff',
+                  visibility: 'visible',
+                  opacity: 1,
+                }
+              }}
+              listeners={{
+                focus: () => console.log('🟣🟣🟣 RootNavigator: Auth focused'),
+              }}
+            />
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </div>
   );
 };
 

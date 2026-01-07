@@ -4,10 +4,14 @@ import { setUser } from '../store/authSlice';
 import { apiClient } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-console.log('🔴 HomePage.tsx: Module loaded');
+console.log('🔴🔴🔴 HomePage.tsx: Module loaded FROM /src/screens/HomePage.tsx');
+console.log('🔴🔴🔴 FILE PATH: /Users/mukeshkumar/Work/IdeaProjects/MyShop/src/screens/HomePage.tsx');
+console.log('🔴🔴🔴 THIS IS THE CORRECT HomePage FILE WITH CATALOG MANAGEMENT');
 
 export default function HomePage({ route, navigation }: any) {
-  console.log('🔴 HomePage: Rendering HomePage component');
+  console.log('🔴🔴🔴 HomePage: Rendering HomePage component from /src/screens/HomePage.tsx');
+  console.log('🔴🔴🔴 HomePage: Route params:', route?.params);
+  console.log('🔴🔴🔴 HomePage: Navigation stack:', navigation?.getState());
 
   const dispatch = useDispatch();
   const [shopData, setShopData] = useState<any>(null);
@@ -31,6 +35,7 @@ export default function HomePage({ route, navigation }: any) {
   useEffect(() => {
     console.log('🔴 HomePage: Component mounted');
     loadShopData();
+
 
     return () => {
       console.log('🔴 HomePage: Component unmounted');
@@ -341,19 +346,18 @@ export default function HomePage({ route, navigation }: any) {
   };
 
   const handleLogout = async () => {
+    console.log('🔴 HomePage: Logging out - clearing all session data');
     await AsyncStorage.removeItem('shopId');
     await AsyncStorage.removeItem('authToken');
+    await AsyncStorage.removeItem('shopName');
+    await AsyncStorage.removeItem('userEmail');
+    await AsyncStorage.removeItem('publicAccessToken');
     dispatch(setUser(null));
+    console.log('🔴 HomePage: Session cleared, navigating to SignIn');
     navigation?.replace('SignIn');
   };
 
-  console.log('🔴 HomePage: About to return JSX');
-  console.log('🔴 HomePage: loading =', loading);
-  console.log('🔴 HomePage: shopData =', shopData ? 'EXISTS' : 'NULL');
-  console.log('🔴 HomePage: shopData.name =', shopData?.name);
-
   if (loading) {
-    console.log('🔴 HomePage: RENDERING LOADING STATE');
     return (
       <div style={{
         width: '100%',
@@ -373,7 +377,6 @@ export default function HomePage({ route, navigation }: any) {
   }
 
   if (!shopData) {
-    console.log('🔴 HomePage: RENDERING NO DATA STATE');
     return (
       <div style={{
         width: '100%',
@@ -410,34 +413,21 @@ export default function HomePage({ route, navigation }: any) {
     );
   }
 
-  console.log('🔴 HomePage: RENDERING SHOP DATA - Name:', shopData.name);
-  console.log('🔴 HomePage: catalogs state:', catalogs);
-  console.log('🔴 HomePage: catalogs length:', catalogs?.length);
-  console.log('🔴 HomePage: catalogsLoading:', catalogsLoading);
 
   return (
-    <div style={{
-      width: '100%',
-      minHeight: '100vh',
-      backgroundColor: '#f5f5f5',
-      overflowY: 'auto',
-      paddingBottom: '50px',
-    }}>
-      {/* DEBUG BANNER - HIGHLY VISIBLE */}
-      <div style={{
-        backgroundColor: '#FF0000',
-        color: '#FFFFFF',
-        padding: '20px',
-        textAlign: 'center',
-        fontSize: '24px',
-        fontWeight: 'bold',
-        borderBottom: '5px solid #000',
-        position: 'sticky',
-        top: 0,
-        zIndex: 9999,
-      }}>
-        ✅ HOMEPAGE LOADED! Shop: {shopData.name} | Catalogs: {catalogs.length}
-      </div>
+    <div
+      id="homepage-container"
+      data-testid="homepage-loaded"
+      style={{
+        width: '100%',
+        minHeight: '100vh',
+        backgroundColor: '#f5f5f5',
+        overflowY: 'auto',
+        paddingBottom: '50px',
+        position: 'relative',
+        zIndex: 1,
+      }}
+    >
 
       {/* Header */}
       <div style={{
