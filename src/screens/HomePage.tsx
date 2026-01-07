@@ -14,6 +14,7 @@ export default function HomePage({ route, navigation }: any) {
   const [catalogs, setCatalogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [catalogsLoading, setCatalogsLoading] = useState(false);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
   const [showAddCatalog, setShowAddCatalog] = useState(false);
   const [editingCatalog, setEditingCatalog] = useState<any>(null);
   const [catalogForm, setCatalogForm] = useState({
@@ -97,13 +98,25 @@ export default function HomePage({ route, navigation }: any) {
   const loadCatalogs = async (shopId: string) => {
     try {
       setCatalogsLoading(true);
+      setCatalogError(null); // Clear previous errors
       console.log('🔴 HomePage: Loading catalogs for shop:', shopId);
       const catalogsData = await apiClient.getCatalogsByShopId(shopId);
       console.log('🔴 HomePage: Loaded catalogs:', catalogsData);
       setCatalogs(catalogsData || []);
-    } catch (error) {
+      setCatalogError(null); // Clear error on success
+    } catch (error: any) {
       console.error('🔴 HomePage: Error loading catalogs:', error);
-      setCatalogs([]);
+
+      // Set user-friendly error message
+      if (error.response?.status === 404) {
+        setCatalogError('No catalogs found for this shop yet. Click "Add Catalog" to create your first item!');
+      } else if (error.message === 'Network Error') {
+        setCatalogError('Network error: Unable to load catalogs. Please check your connection.');
+      } else {
+        setCatalogError('Unable to load catalogs at this time. You can still add new items.');
+      }
+
+      setCatalogs([]); // Set empty array so the rest of the page works
     } finally {
       setCatalogsLoading(false);
     }
@@ -758,11 +771,36 @@ export default function HomePage({ route, navigation }: any) {
         )}
 
         {/* Catalogs List */}
+        {catalogError && (
+          <div style={{
+            backgroundColor: '#fff3cd',
+            border: '1px solid #ffc107',
+            borderRadius: '8px',
+            padding: '15px',
+            marginBottom: '15px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+          }}>
+            <span style={{ fontSize: '24px' }}>ℹ️</span>
+            <div style={{ flex: 1 }}>
+              <p style={{
+                margin: 0,
+                color: '#856404',
+                fontSize: '14px',
+                fontWeight: '500',
+              }}>
+                {catalogError}
+              </p>
+            </div>
+          </div>
+        )}
+
         {catalogsLoading ? (
           <p style={{ textAlign: 'center', color: '#666', fontSize: '14px' }}>Loading catalogs...</p>
         ) : catalogs.length === 0 ? (
           <p style={{ textAlign: 'center', color: '#999', fontSize: '14px', padding: '20px' }}>
-            No catalog items yet. Click "Add Catalog" to create your first item!
+            {catalogError ? 'Ready to add your first catalog item!' : 'No catalog items yet. Click "Add Catalog" to create your first item!'}
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

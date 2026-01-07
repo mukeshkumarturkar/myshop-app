@@ -54,11 +54,13 @@ const CatalogStackNavigator = () => (
 // Shop Stack
 const ShopStackNavigator = () => (
   <ShopStack.Navigator
+    initialRouteName="HomePage"
     screenOptions={{
       headerShown: false,
       animationEnabled: true,
     }}
   >
+    <ShopStack.Screen name="HomePage" component={HomePage} />
     <ShopStack.Screen name="ManageShopScreen" component={ManageShopScreen} />
     <ShopStack.Screen name="EditShop" component={EditShopScreen} />
     <ShopStack.Screen name="CatalogList" component={CatalogStackNavigator} />

@@ -101,9 +101,13 @@ const SignUpScreen = ({ navigation }: any) => {
         shopName: shopData.name,
       }));
 
-      alert('Account created successfully! Redirecting to Home...');
-      // Navigate to HomePage with shop details
-      navigation.replace('Home', { shop: shopDetails });
+      // Save shop ID to AsyncStorage so HomePage can load it
+      await AsyncStorage.setItem('shopId', shopId);
+      console.log('🔴 SignUpScreen: Saved shopId to storage:', shopId);
+
+      alert('Account created successfully! Welcome to your shop!');
+      // Navigation will happen automatically when isSignedIn changes to true
+      // The MainApp (with HomePage) will be shown automatically
     } catch (error: any) {
       console.error('🔴 SignUpScreen: Account creation failed:', error);
       alert('Failed to create account: ' + (error.response?.data?.message || error.message));
