@@ -11,7 +11,21 @@ export default function HomePage({ route, navigation }: any) {
 
   const dispatch = useDispatch();
   const [shopData, setShopData] = useState<any>(null);
+  const [catalogs, setCatalogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [catalogsLoading, setCatalogsLoading] = useState(false);
+  const [showAddCatalog, setShowAddCatalog] = useState(false);
+  const [editingCatalog, setEditingCatalog] = useState<any>(null);
+  const [catalogForm, setCatalogForm] = useState({
+    name: '',
+    category: '',
+    unit: '',
+    price: '',
+    currency: 'INR',
+    startTime: '09:00',
+    endTime: '21:00',
+    available: true,
+  });
 
   useEffect(() => {
     console.log('🔴 HomePage: Component mounted');
@@ -28,8 +42,19 @@ export default function HomePage({ route, navigation }: any) {
       console.log('🔴 HomePage: Shop data received from params:', route.params.shop);
       setShopData(route.params.shop);
       setLoading(false);
+      // Load catalogs for this shop
+      if (route.params.shop.id) {
+        loadCatalogs(route.params.shop.id);
+      }
     }
   }, [route?.params]);
+
+  useEffect(() => {
+    // Load catalogs when shop data is available
+    if (shopData?.id && !route?.params?.shop) {
+      loadCatalogs(shopData.id);
+    }
+  }, [shopData]);
 
   const loadShopData = async () => {
     try {
@@ -67,6 +92,167 @@ export default function HomePage({ route, navigation }: any) {
       console.log('🔴 HomePage: Setting loading to false in finally block');
       setLoading(false);
     }
+  };
+
+  const loadCatalogs = async (shopId: string) => {
+    try {
+      setCatalogsLoading(true);
+      console.log('🔴 HomePage: Loading catalogs for shop:', shopId);
+      const catalogsData = await apiClient.getCatalogsByShopId(shopId);
+      console.log('🔴 HomePage: Loaded catalogs:', catalogsData);
+      setCatalogs(catalogsData || []);
+    } catch (error) {
+      console.error('🔴 HomePage: Error loading catalogs:', error);
+      setCatalogs([]);
+    } finally {
+      setCatalogsLoading(false);
+    }
+  };
+
+  const handleAddCatalog = async () => {
+    if (!shopData?.id) {
+      window.alert('Error: Shop ID not available');
+      return;
+    }
+
+    if (!catalogForm.name || !catalogForm.category || !catalogForm.price) {
+      window.alert('Please fill in all required fields (Name, Category, Price)');
+      return;
+    }
+
+    try {
+      const newCatalog = {
+        name: catalogForm.name,
+        category: catalogForm.category,
+        unit: catalogForm.unit || 'Per Piece',
+        price: {
+          currency: catalogForm.currency,
+          value: parseFloat(catalogForm.price),
+        },
+        availability: {
+          startTime: catalogForm.startTime,
+          endTime: catalogForm.endTime,
+          available: catalogForm.available,
+        },
+      };
+
+      console.log('🔴 HomePage: Creating catalog:', newCatalog);
+      await apiClient.createCatalog(shopData.id, newCatalog);
+      window.alert('Catalog item added successfully!');
+
+      // Reset form and reload catalogs
+      setCatalogForm({
+        name: '',
+        category: '',
+        unit: '',
+        price: '',
+        currency: 'INR',
+        startTime: '09:00',
+        endTime: '21:00',
+        available: true,
+      });
+      setShowAddCatalog(false);
+      loadCatalogs(shopData.id);
+    } catch (error: any) {
+      console.error('🔴 HomePage: Error adding catalog:', error);
+      window.alert('Error: ' + (error.response?.data?.message || 'Failed to add catalog item'));
+    }
+  };
+
+  const handleEditCatalog = async () => {
+    if (!editingCatalog?.id) {
+      window.alert('Error: No catalog selected for editing');
+      return;
+    }
+
+    if (!catalogForm.name || !catalogForm.category || !catalogForm.price) {
+      window.alert('Please fill in all required fields (Name, Category, Price)');
+      return;
+    }
+
+    try {
+      const updatedCatalog = {
+        name: catalogForm.name,
+        category: catalogForm.category,
+        shopId: shopData.id,
+        unit: catalogForm.unit || 'Per Piece',
+        price: {
+          currency: catalogForm.currency,
+          value: parseFloat(catalogForm.price),
+        },
+        availability: {
+          startTime: catalogForm.startTime,
+          endTime: catalogForm.endTime,
+          available: catalogForm.available,
+        },
+      };
+
+      console.log('🔴 HomePage: Updating catalog:', editingCatalog.id, updatedCatalog);
+      await apiClient.updateCatalog(editingCatalog.id, updatedCatalog);
+      window.alert('Catalog item updated successfully!');
+
+      // Reset form and reload catalogs
+      setEditingCatalog(null);
+      setCatalogForm({
+        name: '',
+        category: '',
+        unit: '',
+        price: '',
+        currency: 'INR',
+        startTime: '09:00',
+        endTime: '21:00',
+        available: true,
+      });
+      loadCatalogs(shopData.id);
+    } catch (error: any) {
+      console.error('🔴 HomePage: Error updating catalog:', error);
+      window.alert('Error: ' + (error.response?.data?.message || 'Failed to update catalog item'));
+    }
+  };
+
+  const handleDeleteCatalog = async (catalogId: string, catalogName: string) => {
+    if (!window.confirm(`Are you sure you want to delete "${catalogName}"?`)) {
+      return;
+    }
+
+    try {
+      console.log('🔴 HomePage: Deleting catalog:', catalogId);
+      await apiClient.deleteCatalog(catalogId);
+      window.alert('Catalog item deleted successfully!');
+      loadCatalogs(shopData.id);
+    } catch (error: any) {
+      console.error('🔴 HomePage: Error deleting catalog:', error);
+      window.alert('Error: ' + (error.response?.data?.message || 'Failed to delete catalog item'));
+    }
+  };
+
+  const startEditCatalog = (catalog: any) => {
+    setEditingCatalog(catalog);
+    setCatalogForm({
+      name: catalog.name,
+      category: catalog.category,
+      unit: catalog.unit || '',
+      price: catalog.price?.value?.toString() || '',
+      currency: catalog.price?.currency || 'INR',
+      startTime: catalog.availability?.startTime || '09:00',
+      endTime: catalog.availability?.endTime || '21:00',
+      available: catalog.availability?.available !== false,
+    });
+    setShowAddCatalog(false);
+  };
+
+  const cancelEdit = () => {
+    setEditingCatalog(null);
+    setCatalogForm({
+      name: '',
+      category: '',
+      unit: '',
+      price: '',
+      currency: 'INR',
+      startTime: '09:00',
+      endTime: '21:00',
+      available: true,
+    });
   };
 
   const handleShareQR = async () => {
@@ -197,6 +383,9 @@ export default function HomePage({ route, navigation }: any) {
   }
 
   console.log('🔴 HomePage: RENDERING SHOP DATA - Name:', shopData.name);
+  console.log('🔴 HomePage: catalogs state:', catalogs);
+  console.log('🔴 HomePage: catalogs length:', catalogs?.length);
+  console.log('🔴 HomePage: catalogsLoading:', catalogsLoading);
 
   return (
     <div style={{
@@ -204,23 +393,25 @@ export default function HomePage({ route, navigation }: any) {
       minHeight: '100vh',
       backgroundColor: '#f5f5f5',
       overflowY: 'auto',
+      paddingBottom: '50px',
     }}>
       {/* Header */}
       <div style={{
         backgroundColor: '#6C63FF',
-        padding: '30px',
-        paddingTop: '60px',
+        padding: '20px',
+        paddingTop: '40px',
         textAlign: 'center',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
       }}>
         <h1 style={{
-          fontSize: '28px',
+          fontSize: '24px',
           fontWeight: 'bold',
           color: '#fff',
           marginBottom: '5px',
           margin: 0,
         }}>{shopData.name || 'My Shop'}</h1>
         <p style={{
-          fontSize: '16px',
+          fontSize: '14px',
           color: '#f0f0f0',
           margin: 0,
           marginTop: '5px',
@@ -321,6 +512,336 @@ export default function HomePage({ route, navigation }: any) {
             fontFamily: 'monospace',
           }}>{shopData.id}</span>
         </div>
+      </div>
+
+      {/* Catalog Management Section */}
+      <div style={{
+        backgroundColor: '#fff',
+        margin: '15px',
+        padding: '20px',
+        borderRadius: '10px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '20px',
+        }}>
+          <h2 style={{
+            fontSize: '20px',
+            fontWeight: 'bold',
+            color: '#333',
+            margin: 0,
+          }}>Catalog Items ({catalogs.length})</h2>
+          <button
+            onClick={() => {
+              setShowAddCatalog(true);
+              setEditingCatalog(null);
+              cancelEdit();
+            }}
+            style={{
+              backgroundColor: '#6C63FF',
+              color: '#fff',
+              padding: '8px 16px',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+            }}
+          >
+            + Add Catalog
+          </button>
+        </div>
+
+        {/* Add/Edit Catalog Form */}
+        {(showAddCatalog || editingCatalog) && (
+          <div style={{
+            backgroundColor: '#f8f9fa',
+            padding: '15px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            border: '1px solid #e0e0e0',
+          }}>
+            <h3 style={{
+              fontSize: '16px',
+              fontWeight: 'bold',
+              color: '#333',
+              marginTop: 0,
+              marginBottom: '15px',
+            }}>{editingCatalog ? 'Edit Catalog Item' : 'Add New Catalog Item'}</h3>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+              <div>
+                <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '5px' }}>
+                  Item Name *
+                </label>
+                <input
+                  type="text"
+                  value={catalogForm.name}
+                  onChange={(e) => setCatalogForm({ ...catalogForm, name: e.target.value })}
+                  placeholder="e.g., Margherita Pizza"
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '5px' }}>
+                  Category *
+                </label>
+                <input
+                  type="text"
+                  value={catalogForm.category}
+                  onChange={(e) => setCatalogForm({ ...catalogForm, category: e.target.value })}
+                  placeholder="e.g., Pizza, Beverages"
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+              <div>
+                <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '5px' }}>
+                  Price * (₹)
+                </label>
+                <input
+                  type="number"
+                  value={catalogForm.price}
+                  onChange={(e) => setCatalogForm({ ...catalogForm, price: e.target.value })}
+                  placeholder="350"
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '5px' }}>
+                  Unit
+                </label>
+                <input
+                  type="text"
+                  value={catalogForm.unit}
+                  onChange={(e) => setCatalogForm({ ...catalogForm, unit: e.target.value })}
+                  placeholder="Per Piece"
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '5px' }}>
+                  Currency
+                </label>
+                <select
+                  value={catalogForm.currency}
+                  onChange={(e) => setCatalogForm({ ...catalogForm, currency: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <option value="INR">INR (₹)</option>
+                  <option value="USD">USD ($)</option>
+                  <option value="EUR">EUR (€)</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
+              <div>
+                <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '5px' }}>
+                  Start Time
+                </label>
+                <input
+                  type="time"
+                  value={catalogForm.startTime}
+                  onChange={(e) => setCatalogForm({ ...catalogForm, startTime: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '5px' }}>
+                  End Time
+                </label>
+                <input
+                  type="time"
+                  value={catalogForm.endTime}
+                  onChange={(e) => setCatalogForm({ ...catalogForm, endTime: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={editingCatalog ? handleEditCatalog : handleAddCatalog}
+                style={{
+                  backgroundColor: '#6C63FF',
+                  color: '#fff',
+                  padding: '10px 20px',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  flex: 1,
+                }}
+              >
+                {editingCatalog ? '💾 Update Item' : '➕ Add Item'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowAddCatalog(false);
+                  cancelEdit();
+                }}
+                style={{
+                  backgroundColor: '#fff',
+                  color: '#666',
+                  padding: '10px 20px',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Catalogs List */}
+        {catalogsLoading ? (
+          <p style={{ textAlign: 'center', color: '#666', fontSize: '14px' }}>Loading catalogs...</p>
+        ) : catalogs.length === 0 ? (
+          <p style={{ textAlign: 'center', color: '#999', fontSize: '14px', padding: '20px' }}>
+            No catalog items yet. Click "Add Catalog" to create your first item!
+          </p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {catalogs.map((catalog: any, index: number) => (
+              <div
+                key={catalog.id || index}
+                style={{
+                  backgroundColor: '#f8f9fa',
+                  padding: '15px',
+                  borderRadius: '8px',
+                  border: '1px solid #e0e0e0',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
+                    <h4 style={{
+                      fontSize: '16px',
+                      fontWeight: 'bold',
+                      color: '#333',
+                      margin: 0,
+                    }}>{catalog.name}</h4>
+                    <span style={{
+                      fontSize: '12px',
+                      color: '#6C63FF',
+                      backgroundColor: '#e8eaff',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                    }}>{catalog.category}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '15px', fontSize: '13px', color: '#666' }}>
+                    <span style={{ fontWeight: 'bold', color: '#333' }}>
+                      {catalog.price?.currency === 'INR' ? '₹' : catalog.price?.currency === 'USD' ? '$' : '€'}
+                      {catalog.price?.value}
+                    </span>
+                    <span>Unit: {catalog.unit || 'N/A'}</span>
+                    {catalog.availability && (
+                      <span>⏰ {catalog.availability.startTime} - {catalog.availability.endTime}</span>
+                    )}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => startEditCatalog(catalog)}
+                    style={{
+                      backgroundColor: '#4CAF50',
+                      color: '#fff',
+                      padding: '6px 12px',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ✏️ Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCatalog(catalog.id, catalog.name)}
+                    style={{
+                      backgroundColor: '#f44336',
+                      color: '#fff',
+                      padding: '6px 12px',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    🗑️ Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* QR Code Card */}
