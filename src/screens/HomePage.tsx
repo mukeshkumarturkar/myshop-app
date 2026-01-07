@@ -523,6 +523,7 @@ export default function HomePage({ route, navigation }: any) {
                 padding: '15px 20px',
                 backgroundColor: '#fff',
                 border: 'none',
+                borderBottom: '1px solid #eee',
                 textAlign: 'left',
                 cursor: 'pointer',
                 fontSize: '15px',
@@ -536,6 +537,31 @@ export default function HomePage({ route, navigation }: any) {
             >
               <span style={{ fontSize: '18px' }}>👥</span>
               Manage Users
+            </button>
+
+            <button
+              onClick={() => {
+                setShowMenu(false);
+                handleLogout();
+              }}
+              style={{
+                width: '100%',
+                padding: '15px 20px',
+                backgroundColor: '#fff',
+                border: 'none',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '15px',
+                color: '#d32f2f',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#ffebee'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#fff'}
+            >
+              <span style={{ fontSize: '18px' }}>🚪</span>
+              Logout
             </button>
           </div>
         )}
@@ -1082,46 +1108,6 @@ export default function HomePage({ route, navigation }: any) {
           </div>
         </div>
       )}
-
-      {/* Action Buttons */}
-      <div style={{
-        margin: '15px',
-        display: 'flex',
-        gap: '10px',
-        flexDirection: 'column',
-      }}>
-        <button
-          onClick={() => navigation?.navigate('ManageShop')}
-          style={{
-            backgroundColor: '#6C63FF',
-            color: '#fff',
-            padding: '15px 30px',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '16px',
-            fontWeight: '600',
-            cursor: 'pointer',
-          }}
-        >
-          Manage Shop
-        </button>
-
-        <button
-          onClick={handleLogout}
-          style={{
-            backgroundColor: '#fff',
-            color: '#6C63FF',
-            padding: '15px 30px',
-            border: '1px solid #6C63FF',
-            borderRadius: '8px',
-            fontSize: '16px',
-            fontWeight: '600',
-            cursor: 'pointer',
-          }}
-        >
-          Logout
-        </button>
-      </div>
 
       {/* Debug Info */}
       <div style={{
