@@ -591,6 +591,8 @@ export default function HomePage({ route, navigation }: any) {
         overflowY: 'auto',
         overflowX: 'hidden',
         WebkitOverflowScrolling: 'touch',
+        position: 'relative',
+        touchAction: 'pan-y',
       }}>
       {/* Catalog Management Section */}
       <div style={{

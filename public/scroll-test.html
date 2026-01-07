@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <title>MyShop - Touch Scroll Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      position: fixed;
+      touch-action: manipulation;
+    }
+
+    #root {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      position: fixed;
+      top: 0;
+      left: 0;
+    }
+
+    .container {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .header {
+      background-color: #6C63FF;
+      color: white;
+      padding: 16px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+      touch-action: pan-y;
+      background-color: #f5f5f5;
+    }
+
+    .item {
+      background: white;
+      margin: 12px;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      min-height: 100px;
+    }
+
+    .test-info {
+      background: #fff3cd;
+      padding: 16px;
+      margin: 12px;
+      border-radius: 8px;
+      border-left: 4px solid #ffc107;
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="container">
+      <!-- Fixed Header -->
+      <div class="header">
+        <h1>🏪 MyShop - Scroll Test</h1>
+        <p style="font-size: 14px; opacity: 0.9;">Try scrolling with touch</p>
+      </div>
+
+      <!-- Scrollable Content -->
+      <div class="content">
+        <div class="test-info">
+          <strong>✅ Touch Scroll Test</strong>
+          <p style="margin-top: 8px; font-size: 14px;">
+            If you can scroll down and see all 20 items below, touch scrolling is working!
+          </p>
+          <p style="margin-top: 8px; font-size: 12px; color: #666;">
+            <strong>Cache Clear:</strong> Press Cmd+Shift+R (Mac) or Ctrl+Shift+R (Windows)
+          </p>
+        </div>
+
+        <div class="item" style="background: #e8f5e9;">
+          <h3>✅ Item 1</h3>
+          <p>If you can see this, rendering works!</p>
+        </div>
+
+        <div class="item">
+          <h3>Item 2</h3>
+          <p>Spinach - ₹40/Kg</p>
+        </div>
+
+        <div class="item">
+          <h3>Item 3</h3>
+          <p>Tomato - ₹30/Kg</p>
+        </div>
+
+        <div class="item">
+          <h3>Item 4</h3>
+          <p>Potato - ₹25/Kg</p>
+        </div>
+
+        <div class="item">
+          <h3>Item 5</h3>
+          <p>Onion - ₹35/Kg</p>
+        </div>
+
+        <div class="item">
+          <h3>Item 6</h3>
+          <p>Carrot - ₹45/Kg</p>
+        </div>
+
+        <div class="item">
+          <h3>Item 7</h3>
+          <p>Cabbage - ₹20/Piece</p>
+        </div>
+
+        <div class="item">
+          <h3>Item 8</h3>
+          <p>Cucumber - ₹30/Kg</p>
+        </div>
+
+        <div class="item">
+          <h3>Item 9</h3>
+          <p>Brinjal - ₹35/Kg</p>
+        </div>
+
+        <div class="item">
+          <h3>Item 10</h3>
+          <p>Cauliflower - ₹40/Piece</p>
+        </div>
+
+        <div class="item">
+          <h3>Item 11</h3>
+          <p>Green Beans - ₹50/Kg</p>
+        </div>
+
+        <div class="item">
+          <h3>Item 12</h3>
+          <p>Peas - ₹60/Kg</p>
+        </div>
+
+        <div class="item">
+          <h3>Item 13</h3>
+          <p>Radish - ₹25/Kg</p>
+        </div>
+
+        <div class="item">
+          <h3>Item 14</h3>
+          <p>Beetroot - ₹40/Kg</p>
+        </div>
+
+        <div class="item">
+          <h3>Item 15</h3>
+          <p>Bitter Gourd - ₹45/Kg</p>
+        </div>
+
+        <div class="item">
+          <h3>Item 16</h3>
+          <p>Bottle Gourd - ₹30/Kg</p>
+        </div>
+
+        <div class="item">
+          <h3>Item 17</h3>
+          <p>Pumpkin - ₹20/Kg</p>
+        </div>
+
+        <div class="item">
+          <h3>Item 18</h3>
+          <p>Capsicum - ₹80/Kg</p>
+        </div>
+
+        <div class="item">
+          <h3>Item 19</h3>
+          <p>Mushroom - ₹120/Kg</p>
+        </div>
+
+        <div class="item" style="background: #fff3cd; border: 2px solid #ffc107;">
+          <h3>🎉 Item 20 - BOTTOM REACHED!</h3>
+          <p><strong>✅ Scrolling Works!</strong></p>
+          <p style="margin-top: 8px; font-size: 14px;">
+            If you can see this, touch scrolling is working perfectly on your device!
+          </p>
+        </div>
+
+        <div style="padding: 20px; text-align: center; color: #666;">
+          <p>End of content</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Test script to detect scroll events
+    const content = document.querySelector('.content');
+    let scrolling = false;
+
+    content.addEventListener('scroll', () => {
+      if (!scrolling) {
+        console.log('✅ Scroll detected! Position:', content.scrollTop);
+        scrolling = true;
+        setTimeout(() => scrolling = false, 100);
+      }
+    });
+
+    content.addEventListener('touchstart', () => {
+      console.log('✅ Touch start detected');
+    });
+
+    content.addEventListener('touchmove', () => {
+      console.log('✅ Touch move detected');
+    });
+
+    // Log initial state
+    console.log('📱 Touch Test Page Loaded');
+    console.log('Viewport:', window.innerWidth, 'x', window.innerHeight);
+    console.log('User Agent:', navigator.userAgent);
+  </script>
+</body>
+</html>
+
