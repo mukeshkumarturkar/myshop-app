@@ -152,20 +152,30 @@ button:disabled {
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
   height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-  overscroll-behavior-y: contain;
-  touch-action: pan-y;
-  position: relative;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important; /* Smooth scrolling on iOS */
+  overscroll-behavior-y: contain !important;
+  touch-action: pan-y !important;
+  position: relative !important;
 }
 
 /* Ensure all scrollable divs work on mobile */
-div[style*="overflowY: auto"],
-div[style*="overflow-y: auto"] {
+div[style*="overflowY"],
+div[style*="overflow-y"],
+div[style*="flex: 1"] {
   -webkit-overflow-scrolling: touch !important;
   touch-action: pan-y !important;
   overscroll-behavior-y: contain !important;
+}
+
+/* Specific fix for scrollable containers */
+[data-scrollable="true"],
+.scrollable-content {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
 }
 
 /* Safe Area Insets for iOS notch */

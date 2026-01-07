@@ -133,14 +133,22 @@ export default function ManageShopScreen({ navigation }: any) {
       </div>
 
       {/* Form - Scrollable */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '20px',
-      }}>
+      <div
+        className="app-content scrollable-content"
+        data-scrollable="true"
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          padding: '20px',
+          WebkitOverflowScrolling: 'touch',
+          touchAction: 'pan-y',
+          overscrollBehaviorY: 'contain',
+        }}
+      >
       <div style={{
         backgroundColor: '#fff',
-        margin: '20px',
+        margin: '0 auto',
         padding: '25px',
         borderRadius: '10px',
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',

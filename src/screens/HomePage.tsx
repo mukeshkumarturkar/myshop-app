@@ -152,12 +152,20 @@ export default function HomePage({ route, navigation }: any) {
   };
 
   const handleAddCatalog = async () => {
+    console.log('🔴 handleAddCatalog: Form values:', catalogForm);
+    console.log('🔴 handleAddCatalog: name:', catalogForm.name, 'empty?', !catalogForm.name);
+    console.log('🔴 handleAddCatalog: category:', catalogForm.category, 'empty?', !catalogForm.category);
+    console.log('🔴 handleAddCatalog: price:', catalogForm.price, 'empty?', !catalogForm.price);
+
     if (!shopData?.id) {
+      console.error('🔴 handleAddCatalog: No shop ID');
       window.alert('Error: Shop ID not available');
       return;
     }
 
     if (!catalogForm.name || !catalogForm.category || !catalogForm.price) {
+      console.error('🔴 handleAddCatalog: Validation failed!');
+      console.error('🔴 Form state:', JSON.stringify(catalogForm, null, 2));
       window.alert('Please fill in all required fields (Name, Category, Price)');
       return;
     }
@@ -586,14 +594,19 @@ export default function HomePage({ route, navigation }: any) {
       </div>
 
       {/* Scrollable Content Area */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        WebkitOverflowScrolling: 'touch',
-        position: 'relative',
-        touchAction: 'pan-y',
-      }}>
+      <div
+        className="app-content scrollable-content"
+        data-scrollable="true"
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+          position: 'relative',
+          touchAction: 'pan-y',
+          overscrollBehaviorY: 'contain',
+        }}
+      >
       {/* Catalog Management Section */}
       <div style={{
         backgroundColor: '#fff',
@@ -686,7 +699,10 @@ export default function HomePage({ route, navigation }: any) {
               <input
                 type="text"
                 value={catalogForm.name}
-                onChange={(e) => setCatalogForm({ ...catalogForm, name: e.target.value })}
+                onChange={(e) => {
+                  console.log('🔴 Name changed to:', e.target.value);
+                  setCatalogForm({ ...catalogForm, name: e.target.value });
+                }}
                 placeholder="e.g., Spinach, Tomato"
                 style={{
                   width: '100%',
@@ -712,7 +728,10 @@ export default function HomePage({ route, navigation }: any) {
               </label>
               <select
                 value={catalogForm.category}
-                onChange={(e) => setCatalogForm({ ...catalogForm, category: e.target.value })}
+                onChange={(e) => {
+                  console.log('🔴 Category changed to:', e.target.value);
+                  setCatalogForm({ ...catalogForm, category: e.target.value });
+                }}
                 style={{
                   width: '100%',
                   padding: '12px',
