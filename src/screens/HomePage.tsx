@@ -420,70 +420,77 @@ export default function HomePage({ route, navigation }: any) {
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        position: 'relative',
-        zIndex: 1,
       }}
     >
 
-      {/* Header with Menu and Shop Information - Fixed */}
+      {/* Fixed Header */}
       <div style={{
         backgroundColor: '#6C63FF',
-        padding: '20px',
-        paddingTop: '15px',
-        position: 'relative',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        padding: '12px 16px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
         flexShrink: 0,
+        position: 'relative',
       }}>
-        {/* Logged In User - Top Left Corner */}
+        {/* Top Row: Shop Name and Menu */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '8px',
+        }}>
+          <h1 style={{
+            fontSize: '20px',
+            fontWeight: 'bold',
+            color: '#fff',
+            margin: 0,
+            flex: 1,
+          }}>
+            🏪 {shopData?.name || 'My Shop'}
+          </h1>
+
+          {/* Menu Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowMenu(!showMenu);
+            }}
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              zIndex: 9998,
+            }}
+            aria-label="Menu"
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ width: '20px', height: '2px', backgroundColor: '#fff', borderRadius: '2px' }}></div>
+              <div style={{ width: '20px', height: '2px', backgroundColor: '#fff', borderRadius: '2px' }}></div>
+              <div style={{ width: '20px', height: '2px', backgroundColor: '#fff', borderRadius: '2px' }}></div>
+            </div>
+          </button>
+        </div>
+
+        {/* Second Row: Logged In User */}
         {user?.email && (
           <div style={{
-            position: 'absolute',
-            top: '15px',
-            left: '15px',
-            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '6px 12px',
+            backgroundColor: 'rgba(255, 255, 255, 0.15)',
+            borderRadius: '16px',
+            fontSize: '13px',
+            color: '#fff',
+            width: 'fit-content',
           }}>
-            <div style={{
-              padding: '8px 15px',
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
-              borderRadius: '20px',
-              backdropFilter: 'blur(10px)',
-            }}>
-              <span style={{
-                fontSize: '12px',
-                color: '#fff',
-                fontWeight: '500',
-                whiteSpace: 'nowrap',
-              }}>
-                👤 <strong>{user.email}</strong>
-              </span>
-            </div>
+            <span style={{ opacity: 0.9 }}>👤</span>
+            <span style={{ fontWeight: '500' }}>
+              {user.email}
+            </span>
           </div>
         )}
-
-        {/* Menu Icon Button - Top Right Corner */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowMenu(!showMenu);
-          }}
-          style={{
-            position: 'absolute',
-            top: '15px',
-            right: '15px',
-            backgroundColor: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '10px',
-            zIndex: 9998,
-          }}
-          aria-label="Menu"
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ width: '25px', height: '3px', backgroundColor: '#fff', borderRadius: '2px' }}></div>
-            <div style={{ width: '25px', height: '3px', backgroundColor: '#fff', borderRadius: '2px' }}></div>
-            <div style={{ width: '25px', height: '3px', backgroundColor: '#fff', borderRadius: '2px' }}></div>
-          </div>
-        </button>
 
         {/* Dropdown Menu */}
         {showMenu && (
@@ -576,60 +583,6 @@ export default function HomePage({ route, navigation }: any) {
             </button>
           </div>
         )}
-
-        {/* Shop Information - All Details in Header */}
-        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <h1 style={{
-            fontSize: '24px',
-            fontWeight: 'bold',
-            color: '#fff',
-            margin: 0,
-            marginBottom: '15px',
-            textAlign: 'center',
-          }}>{shopData.name || 'My Shop'}</h1>
-
-
-          {/* Shop Details Grid */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '10px',
-            fontSize: '13px',
-            color: '#f0f0f0',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <span style={{ fontWeight: '600' }}>👤 Owner:</span>
-              <span>{shopData.owner || 'N/A'}</span>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <span style={{ fontWeight: '600' }}>📧 Email:</span>
-              <span style={{ wordBreak: 'break-all' }}>{shopData.email || 'N/A'}</span>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <span style={{ fontWeight: '600' }}>📍 Address:</span>
-              <span>{shopData.address || 'N/A'}</span>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <span style={{ fontWeight: '600' }}>📱 Mobile:</span>
-              <span>+{shopData.mobileCountryCode} {shopData.mobileNumber}</span>
-            </div>
-
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              gridColumn: 'span 2',
-              fontSize: '12px',
-              opacity: 0.8,
-            }}>
-              <span style={{ fontWeight: '600' }}>🆔 Shop ID:</span>
-              <span style={{ fontFamily: 'monospace' }}>{shopData.id || 'N/A'}</span>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Scrollable Content Area */}
@@ -637,23 +590,26 @@ export default function HomePage({ route, navigation }: any) {
         flex: 1,
         overflowY: 'auto',
         overflowX: 'hidden',
+        WebkitOverflowScrolling: 'touch',
       }}>
       {/* Catalog Management Section */}
       <div style={{
         backgroundColor: '#fff',
-        margin: '15px',
-        padding: '20px',
-        borderRadius: '10px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        margin: '12px',
+        padding: '16px',
+        borderRadius: '12px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
       }}>
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '20px',
+          marginBottom: '16px',
+          flexWrap: 'wrap',
+          gap: '12px',
         }}>
           <h2 style={{
-            fontSize: '20px',
+            fontSize: '18px',
             fontWeight: 'bold',
             color: '#333',
             margin: 0,
@@ -679,95 +635,143 @@ export default function HomePage({ route, navigation }: any) {
           </button>
         </div>
 
-        {/* Add/Edit Catalog Form */}
+        {/* Add/Edit Catalog Form - Mobile First */}
         {(showAddCatalog || editingCatalog) && (
           <div style={{
-            backgroundColor: '#f8f9fa',
-            padding: '15px',
-            borderRadius: '8px',
+            backgroundColor: '#fff',
+            padding: '20px',
+            borderRadius: '12px',
             marginBottom: '20px',
-            border: '1px solid #e0e0e0',
+            border: '2px solid #6C63FF',
+            boxShadow: '0 4px 12px rgba(108, 99, 255, 0.1)',
           }}>
-            <h3 style={{
-              fontSize: '16px',
-              fontWeight: 'bold',
-              color: '#333',
-              marginTop: 0,
-              marginBottom: '15px',
-            }}>{editingCatalog ? 'Edit Catalog Item' : 'Add New Catalog Item'}</h3>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-              <div>
-                <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '5px' }}>
-                  Item Name *
-                </label>
-                <input
-                  type="text"
-                  value={catalogForm.name}
-                  onChange={(e) => setCatalogForm({ ...catalogForm, name: e.target.value })}
-                  placeholder="e.g., Margherita Pizza"
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '5px' }}>
-                  Category *
-                </label>
-                <select
-                  value={catalogForm.category}
-                  onChange={(e) => setCatalogForm({ ...catalogForm, category: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                    backgroundColor: '#fff',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <option value="">Select Category</option>
-                  {availableCategories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '20px',
+            }}>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: 'bold',
+                color: '#333',
+                margin: 0,
+              }}>{editingCatalog ? '✏️ Edit Item' : '➕ Add New Item'}</h3>
+              <button
+                onClick={cancelEdit}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#999',
+                  padding: '4px 8px',
+                }}
+              >×</button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+            {/* Item Name - Full Width */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{
+                fontSize: '14px',
+                color: '#333',
+                display: 'block',
+                marginBottom: '8px',
+                fontWeight: '600',
+              }}>
+                Item Name *
+              </label>
+              <input
+                type="text"
+                value={catalogForm.name}
+                onChange={(e) => setCatalogForm({ ...catalogForm, name: e.target.value })}
+                placeholder="e.g., Spinach, Tomato"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            {/* Category - Full Width */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{
+                fontSize: '14px',
+                color: '#333',
+                display: 'block',
+                marginBottom: '8px',
+                fontWeight: '600',
+              }}>
+                Category *
+              </label>
+              <select
+                value={catalogForm.category}
+                onChange={(e) => setCatalogForm({ ...catalogForm, category: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box',
+                  backgroundColor: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="">Select Category</option>
+                {availableCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Price and Unit - Side by Side on larger screens */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+              gap: '16px',
+              marginBottom: '16px'
+            }}>
               <div>
-                <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '5px' }}>
+                <label style={{
+                  fontSize: '14px',
+                  color: '#333',
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontWeight: '600',
+                }}>
                   Price * (₹)
                 </label>
                 <input
                   type="number"
                   value={catalogForm.price}
                   onChange={(e) => setCatalogForm({ ...catalogForm, price: e.target.value })}
-                  placeholder="350"
+                  placeholder="40"
                   style={{
                     width: '100%',
-                    padding: '8px',
+                    padding: '12px',
                     border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    fontSize: '14px',
+                    borderRadius: '8px',
+                    fontSize: '16px',
                     boxSizing: 'border-box',
                   }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '5px' }}>
+                <label style={{
+                  fontSize: '14px',
+                  color: '#333',
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontWeight: '600',
+                }}>
                   Unit *
                 </label>
                 <div style={{ position: 'relative' }}>
@@ -781,14 +785,14 @@ export default function HomePage({ route, navigation }: any) {
                       setShowUnitDropdown(true);
                     }}
                     onFocus={() => setShowUnitDropdown(true)}
-                    placeholder="Type to search or enter custom unit"
+                    placeholder="Kg, Piece, etc."
                     style={{
                       width: '100%',
-                      padding: '8px',
-                      paddingRight: '30px',
+                      padding: '12px',
+                      paddingRight: '36px',
                       border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '14px',
+                      borderRadius: '8px',
+                      fontSize: '16px',
                       boxSizing: 'border-box',
                     }}
                   />
@@ -853,86 +857,30 @@ export default function HomePage({ route, navigation }: any) {
                   )}
                 </div>
                 <div style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>
-                  Common: Kg, Piece, Liter, Dozen | Custom: Nag, Bundle, etc.
+                  Kg, Piece, Liter, Nag, etc.
                 </div>
               </div>
-
-              <div>
-                <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '5px' }}>
-                  Currency
-                </label>
-                <select
-                  value={catalogForm.currency}
-                  onChange={(e) => setCatalogForm({ ...catalogForm, currency: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  <option value="INR">INR (₹)</option>
-                  <option value="USD">USD ($)</option>
-                  <option value="EUR">EUR (€)</option>
-                </select>
-              </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
-              <div>
-                <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '5px' }}>
-                  Start Time
-                </label>
-                <input
-                  type="time"
-                  value={catalogForm.startTime}
-                  onChange={(e) => setCatalogForm({ ...catalogForm, startTime: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '5px' }}>
-                  End Time
-                </label>
-                <input
-                  type="time"
-                  value={catalogForm.endTime}
-                  onChange={(e) => setCatalogForm({ ...catalogForm, endTime: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px' }}>
+            {/* Action Buttons - Full Width on Mobile */}
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              marginTop: '20px',
+            }}>
               <button
                 onClick={editingCatalog ? handleEditCatalog : handleAddCatalog}
                 style={{
                   backgroundColor: '#6C63FF',
                   color: '#fff',
-                  padding: '10px 20px',
+                  padding: '14px 24px',
                   border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '14px',
+                  borderRadius: '8px',
+                  fontSize: '16px',
                   fontWeight: '600',
                   cursor: 'pointer',
                   flex: 1,
+                  minHeight: '48px',
                 }}
               >
                 {editingCatalog ? '💾 Update Item' : '➕ Add Item'}
@@ -945,12 +893,14 @@ export default function HomePage({ route, navigation }: any) {
                 style={{
                   backgroundColor: '#fff',
                   color: '#666',
-                  padding: '10px 20px',
-                  border: '1px solid #ddd',
-                  borderRadius: '6px',
-                  fontSize: '14px',
+                  padding: '14px 24px',
+                  border: '2px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '16px',
                   fontWeight: '600',
                   cursor: 'pointer',
+                  minWidth: '100px',
+                  minHeight: '48px',
                 }}
               >
                 Cancel

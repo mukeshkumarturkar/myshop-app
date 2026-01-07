@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
 import App from './App';
 import { store } from './src/store';
+import './src/styles/global.css';
 
 console.log('🔴 index.tsx: Module loaded');
 console.log('🔴 index.tsx: Store imported:', store ? '✓' : '✗');
