@@ -96,14 +96,18 @@ export default function ManageShopScreen({ navigation }: any) {
     <div style={{
       width: '100%',
       minHeight: '100vh',
+      height: '100vh',
       backgroundColor: '#f5f5f5',
-      paddingBottom: '50px',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
     }}>
-      {/* Header */}
+      {/* Header - Fixed */}
       <div style={{
         backgroundColor: '#6C63FF',
         padding: '20px',
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <button
@@ -128,7 +132,12 @@ export default function ManageShopScreen({ navigation }: any) {
         </div>
       </div>
 
-      {/* Form */}
+      {/* Form - Scrollable */}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        padding: '20px',
+      }}>
       <div style={{
         backgroundColor: '#fff',
         margin: '20px',
@@ -355,6 +364,7 @@ export default function ManageShopScreen({ navigation }: any) {
             Cancel
           </button>
         </div>
+      </div>
       </div>
     </div>
   );

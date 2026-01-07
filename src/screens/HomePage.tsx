@@ -4,6 +4,8 @@ import { setUser } from '../store/authSlice';
 import { RootState } from '../store';
 import { apiClient } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getCategoriesForShopType, DEFAULT_CATEGORY } from '../config/categories';
+import { ALL_UNITS, searchUnits, DEFAULT_UNIT } from '../config/units';
 
 export default function HomePage({ route, navigation }: any) {
 
@@ -17,6 +19,11 @@ export default function HomePage({ route, navigation }: any) {
   const [showAddCatalog, setShowAddCatalog] = useState(false);
   const [editingCatalog, setEditingCatalog] = useState<any>(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState<readonly string[]>([]);
+  const [unitSearch, setUnitSearch] = useState('');
+  const [filteredUnits, setFilteredUnits] = useState<readonly string[]>(ALL_UNITS);
+  const [showUnitDropdown, setShowUnitDropdown] = useState(false);
+  const [customUnit, setCustomUnit] = useState('');
   const [catalogForm, setCatalogForm] = useState({
     name: '',
     category: '',
@@ -32,10 +39,13 @@ export default function HomePage({ route, navigation }: any) {
     console.log('🔴 HomePage: Component mounted');
     loadShopData();
 
-    // Close menu when clicking outside
+    // Close menu and unit dropdown when clicking outside
     const handleClickOutside = (e: MouseEvent) => {
       if (showMenu) {
         setShowMenu(false);
+      }
+      if (showUnitDropdown) {
+        setShowUnitDropdown(false);
       }
     };
 
@@ -45,6 +55,12 @@ export default function HomePage({ route, navigation }: any) {
       document.removeEventListener('click', handleClickOutside);
     };
   }, [showMenu]);
+
+  // Filter units based on search
+  useEffect(() => {
+    const filtered = searchUnits(unitSearch);
+    setFilteredUnits(filtered);
+  }, [unitSearch]);
 
   useEffect(() => {
     // Check if shop data was passed from SignUpScreen
@@ -84,6 +100,11 @@ export default function HomePage({ route, navigation }: any) {
       if (shopId) {
         const shop = await apiClient.getShop(shopId);
         setShopData(shop);
+
+        // Load categories based on shop type
+        const categories = getCategoriesForShopType(shop.shopType || 'VEGETABLE_SHOP');
+        setAvailableCategories(categories);
+
         // Catalogs will be loaded separately by useEffect watching shopData
       }
     } catch (error) {
@@ -394,22 +415,24 @@ export default function HomePage({ route, navigation }: any) {
       data-testid="homepage-loaded"
       style={{
         width: '100%',
-        minHeight: '100vh',
+        height: '100vh',
         backgroundColor: '#f5f5f5',
-        overflowY: 'auto',
-        paddingBottom: '50px',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
         position: 'relative',
         zIndex: 1,
       }}
     >
 
-      {/* Header with Menu and Shop Information */}
+      {/* Header with Menu and Shop Information - Fixed */}
       <div style={{
         backgroundColor: '#6C63FF',
         padding: '20px',
-        paddingTop: '40px',
+        paddingTop: '15px',
         position: 'relative',
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        flexShrink: 0,
       }}>
         {/* Logged In User - Top Left Corner */}
         {user?.email && (
@@ -609,7 +632,12 @@ export default function HomePage({ route, navigation }: any) {
         </div>
       </div>
 
-
+      {/* Scrollable Content Area */}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+      }}>
       {/* Catalog Management Section */}
       <div style={{
         backgroundColor: '#fff',
@@ -693,11 +721,9 @@ export default function HomePage({ route, navigation }: any) {
                 <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '5px' }}>
                   Category *
                 </label>
-                <input
-                  type="text"
+                <select
                   value={catalogForm.category}
                   onChange={(e) => setCatalogForm({ ...catalogForm, category: e.target.value })}
-                  placeholder="e.g., Pizza, Beverages"
                   style={{
                     width: '100%',
                     padding: '8px',
@@ -705,8 +731,17 @@ export default function HomePage({ route, navigation }: any) {
                     borderRadius: '4px',
                     fontSize: '14px',
                     boxSizing: 'border-box',
+                    backgroundColor: '#fff',
+                    cursor: 'pointer',
                   }}
-                />
+                >
+                  <option value="">Select Category</option>
+                  {availableCategories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -733,22 +768,93 @@ export default function HomePage({ route, navigation }: any) {
 
               <div>
                 <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '5px' }}>
-                  Unit
+                  Unit *
                 </label>
-                <input
-                  type="text"
-                  value={catalogForm.unit}
-                  onChange={(e) => setCatalogForm({ ...catalogForm, unit: e.target.value })}
-                  placeholder="Per Piece"
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                  }}
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    value={catalogForm.unit}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setCatalogForm({ ...catalogForm, unit: value });
+                      setUnitSearch(value);
+                      setShowUnitDropdown(true);
+                    }}
+                    onFocus={() => setShowUnitDropdown(true)}
+                    placeholder="Type to search or enter custom unit"
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      paddingRight: '30px',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  {catalogForm.unit && (
+                    <button
+                      onClick={() => {
+                        setCatalogForm({ ...catalogForm, unit: '' });
+                        setUnitSearch('');
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: '8px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '16px',
+                        color: '#999',
+                      }}
+                    >
+                      ×
+                    </button>
+                  )}
+                  {showUnitDropdown && filteredUnits.length > 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      backgroundColor: '#fff',
+                      border: '1px solid #ddd',
+                      borderTop: 'none',
+                      borderRadius: '0 0 4px 4px',
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                      zIndex: 1000,
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                    }}>
+                      {filteredUnits.map((unit) => (
+                        <div
+                          key={unit}
+                          onClick={() => {
+                            setCatalogForm({ ...catalogForm, unit });
+                            setShowUnitDropdown(false);
+                            setUnitSearch('');
+                          }}
+                          style={{
+                            padding: '8px 12px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            backgroundColor: catalogForm.unit === unit ? '#f0f0f0' : '#fff',
+                            borderBottom: '1px solid #f0f0f0',
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = catalogForm.unit === unit ? '#f0f0f0' : '#fff'}
+                        >
+                          {unit}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>
+                  Common: Kg, Piece, Liter, Dozen | Custom: Nag, Bundle, etc.
+                </div>
               </div>
 
               <div>
@@ -1103,6 +1209,7 @@ export default function HomePage({ route, navigation }: any) {
           fontWeight: '600',
           margin: 0,
         }}>✓ Shop loaded successfully</p>
+      </div>
       </div>
     </div>
   );
