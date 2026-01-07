@@ -4,7 +4,7 @@ import { ApiError } from '../types';
 
 // API Base URL - uses EXPO_PUBLIC_API_URL environment variable
 // Default: http://api.soanch.com (production)
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://api.soanch.com';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.soanch.com';
 
 console.log('🔴 API Client: Base URL =', API_BASE_URL);
 
