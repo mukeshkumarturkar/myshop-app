@@ -25,8 +25,6 @@ const ShopStack = createNativeStackNavigator();
 
 // Auth Stack
 const AuthStack = () => {
-  console.log('🟢🟢🟢 AuthStack: Rendering AuthStack with HomePage component:', HomePage.name);
-  console.log('🟢🟢🟢 AuthStack: HomePage component reference:', HomePage);
   return (
     <Stack.Navigator
       initialRouteName="SignIn"
@@ -37,13 +35,7 @@ const AuthStack = () => {
     >
       <Stack.Screen name="SignIn" component={SignInScreen} />
       <Stack.Screen name="SignUp" component={SignUpScreen} />
-      <Stack.Screen
-        name="Home"
-        component={HomePage}
-        listeners={{
-          focus: () => console.log('🟢🟢🟢 AuthStack: Home screen focused'),
-        }}
-      />
+      <Stack.Screen name="Home" component={HomePage} />
     </Stack.Navigator>
   );
 };
@@ -64,8 +56,6 @@ const CatalogStackNavigator = () => (
 
 // Shop Stack
 const ShopStackNavigator = () => {
-  console.log('🔵🔵🔵 ShopStackNavigator: Rendering ShopStack with HomePage component:', HomePage.name);
-  console.log('🔵🔵🔵 ShopStackNavigator: HomePage component reference:', HomePage);
   return (
     <ShopStack.Navigator
       initialRouteName="HomePage"
@@ -74,13 +64,7 @@ const ShopStackNavigator = () => {
         animationEnabled: true,
       }}
     >
-      <ShopStack.Screen
-        name="HomePage"
-        component={HomePage}
-        listeners={{
-          focus: () => console.log('🔵🔵🔵 ShopStack: HomePage screen focused'),
-        }}
-      />
+      <ShopStack.Screen name="HomePage" component={HomePage} />
       <ShopStack.Screen name="ManageShopScreen" component={ManageShopScreen} />
       <ShopStack.Screen name="ManageUsersScreen" component={ManageUsersScreen} />
       <ShopStack.Screen name="EditShop" component={EditShopScreen} />
@@ -132,10 +116,6 @@ const MainApp = () => (
 const RootNavigator = () => {
   const isSignedIn = useSelector((state: RootState) => state.auth.isSignedIn);
 
-  console.log('🟣🟣🟣 RootNavigator rendering, isSignedIn:', isSignedIn);
-  console.log('🟣🟣🟣 RootNavigator: Will render:', isSignedIn ? 'MainApp (with ShopStack)' : 'Auth Stack');
-  console.log('🟣🟣🟣 RootNavigator: HomePage component available:', !!HomePage);
-
   return (
     <div style={{
       width: '100%',
@@ -174,9 +154,6 @@ const RootNavigator = () => {
                   opacity: 1,
                 }
               }}
-              listeners={{
-                focus: () => console.log('🟣🟣🟣 RootNavigator: MainApp focused'),
-              }}
             />
           ) : (
             <Stack.Screen
@@ -189,9 +166,6 @@ const RootNavigator = () => {
                   visibility: 'visible',
                   opacity: 1,
                 }
-              }}
-              listeners={{
-                focus: () => console.log('🟣🟣🟣 RootNavigator: Auth focused'),
               }}
             />
           )}

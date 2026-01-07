@@ -5,7 +5,6 @@ import { setUser, setError, setLoading as setLoadingAction } from '../store/auth
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SignInScreen = ({ navigation }: any) => {
-  console.log('🔴 SignInScreen: Component Mounted');
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
   const [signInMethod, setSignInMethod] = useState<'email' | 'phone'>('email');
@@ -16,31 +15,15 @@ const SignInScreen = ({ navigation }: any) => {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
 
-  React.useEffect(() => {
-    console.log('🔴 SignInScreen: useEffect - Component initialized');
-    console.log('🔴 SignInScreen: Navigation prop available:', !!navigation);
-    return () => {
-      console.log('🔴 SignInScreen: Component unmounting');
-    };
-  }, [navigation]);
-
   const handleEmailSignIn = async () => {
-    console.log('🔴 SignInScreen: handleEmailSignIn called');
-    console.log('🔴 SignInScreen: Email:', email);
-    console.log('🔴 SignInScreen: Password entered:', password.length > 0);
-
     if (!email.trim() || !password.trim()) {
-      console.log('🔴 SignInScreen: Validation failed - empty email or password');
       alert('Please enter email and password');
       return;
     }
 
     setLoading(true);
     try {
-      console.log('🔴 SignInScreen: PASSWORD MODE - Authenticating with credentials');
-      // PASSWORD MODE: With email and password
       const response = await apiClient.authenticate(email, password);
-      console.log('🔴 SignInScreen: PASSWORD MODE - Authentication successful');
 
       if (response.oauth_token) {
         await AsyncStorage.setItem('authToken', response.oauth_token);
@@ -51,7 +34,6 @@ const SignInScreen = ({ navigation }: any) => {
       if (response.shop_name) {
         await AsyncStorage.setItem('shopName', response.shop_name);
       }
-      // Store email for session restoration
       await AsyncStorage.setItem('userEmail', response.email || email);
 
       dispatch(setUser({
@@ -60,12 +42,8 @@ const SignInScreen = ({ navigation }: any) => {
         displayName: response.owner_name || 'Shop Owner',
         shopName: response.shop_name,
       }));
-
-      console.log('🔴 SignInScreen: User dispatched to Redux, navigation will happen automatically');
-      console.log('🔴 SignInScreen: Redux state should now be isSignedIn: true');
-      // Alert removed - navigation happens automatically via Redux state change
     } catch (error: any) {
-      console.error('🔴 SignInScreen: PASSWORD MODE - Sign in error:', error);
+      console.error('Sign in error:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Sign in failed';
       dispatch(setError(errorMessage));
       alert('Sign In Failed: ' + errorMessage);
@@ -94,7 +72,6 @@ const SignInScreen = ({ navigation }: any) => {
     alert('Feature Coming Soon: OTP verification will be implemented soon');
   };
 
-  console.log('🔴 SignInScreen: Render method called - about to return JSX');
 
   return (
     <div style={{
@@ -442,11 +419,8 @@ const SignInScreen = ({ navigation }: any) => {
             Not Registered?{' '}
             <button
               onClick={() => {
-                console.log('🔴 SignInScreen: SIGN UP NOW LINK CLICKED!');
-                console.log('🔴 SignInScreen: Navigation prop:', !!navigation);
                 if (navigation && navigation.navigate) {
                   navigation.navigate('SignUp');
-                  console.log('🔴 SignInScreen: Navigation call successful');
                 }
               }}
               style={{
@@ -466,10 +440,8 @@ const SignInScreen = ({ navigation }: any) => {
           <p style={{ margin: '10px 0 0 0', color: '#666', fontSize: '14px' }}>
             <button
               onClick={() => {
-                console.log('🔴 SignInScreen: TEST MODE - Navigating to HomePage');
                 if (navigation && navigation.navigate) {
                   navigation.navigate('Home');
-                  console.log('🔴 SignInScreen: Test navigation successful');
                 }
               }}
               style={{

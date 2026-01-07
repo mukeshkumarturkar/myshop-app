@@ -51,34 +51,23 @@ const SignUpScreen = ({ navigation }: any) => {
     setLoading(true);
     try {
       // Step 1: Get public access token WITHOUT credentials (PUBLIC MODE)
-      console.log('🔴 SignUpScreen: Step 1 - Getting public access token (PUBLIC MODE)');
       const publicAuthResponse = await apiClient.authenticate();
-      console.log('🔴 SignUpScreen: Got public access token');
 
       // Step 2: Create the shop using shop data + password with PUBLIC TOKEN
-      console.log('🔴 SignUpScreen: Step 2 - Creating shop with public token');
-
-      // Format shop data exactly as API expects (camelCase!)
       const shopSignupData = {
         name: shopData.name.trim(),
         owner: shopData.owner.trim(),
         email: shopData.email.trim(),
         address: shopData.address.trim(),
-        mobileCountryCode: shopData.mobile_country_code, // ✅ camelCase!
-        mobileNumber: shopData.mobile_number, // ✅ camelCase!
+        mobileCountryCode: shopData.mobile_country_code,
+        mobileNumber: shopData.mobile_number,
         password: accountData.password,
       };
 
-      // Log exact request body for debugging
-      console.log('🔴 SignUpScreen: Creating shop with data:', JSON.stringify(shopSignupData, null, 2));
-
-      const createResponse = await apiClient.createShop(shopSignupData, true); // ✅ usePublicToken=true
+      const createResponse = await apiClient.createShop(shopSignupData, true);
       const shopId = createResponse.shopId || createResponse.id;
-      console.log('🔴 SignUpScreen: Shop created with ID:', shopId);
-      console.log('🔴 SignUpScreen: Shop response:', JSON.stringify(createResponse, null, 2));
 
       // Step 3: Create user for the shop using PUBLIC access token
-      console.log('🔴 SignUpScreen: Step 3 - Creating shop user with public token');
       await apiClient.createUser({
         shopId,
         role: 'ADMIN', // Shop owner gets ADMIN role
@@ -88,7 +77,6 @@ const SignUpScreen = ({ navigation }: any) => {
         password: accountData.password,
         confirmPassword: accountData.confirmPassword,
       });
-      console.log('🔴 SignUpScreen: Shop ADMIN user created successfully');
 
       // Save shop details
       if (shopId) {
@@ -100,7 +88,6 @@ const SignUpScreen = ({ navigation }: any) => {
 
       // Fetch full shop details after creation
       const shopDetails = await apiClient.getShop(shopId);
-      console.log('🔴 SignUpScreen: Fetched shop details:', JSON.stringify(shopDetails, null, 2));
 
       dispatch(setUser({
         uid: shopId,
@@ -111,13 +98,10 @@ const SignUpScreen = ({ navigation }: any) => {
 
       // Save shop ID to AsyncStorage so HomePage can load it
       await AsyncStorage.setItem('shopId', shopId);
-      console.log('🔴 SignUpScreen: Saved shopId to storage:', shopId);
 
-      alert('Account created successfully! Welcome to your shop!');
       // Navigation will happen automatically when isSignedIn changes to true
-      // The MainApp (with HomePage) will be shown automatically
     } catch (error: any) {
-      console.error('🔴 SignUpScreen: Account creation failed:', error);
+      console.error('Account creation failed:', error);
       alert('Failed to create account: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);

@@ -5,14 +5,7 @@ import { RootState } from '../store';
 import { apiClient } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-console.log('🔴🔴🔴 HomePage.tsx: Module loaded FROM /src/screens/HomePage.tsx');
-console.log('🔴🔴🔴 FILE PATH: /Users/mukeshkumar/Work/IdeaProjects/MyShop/src/screens/HomePage.tsx');
-console.log('🔴🔴🔴 THIS IS THE CORRECT HomePage FILE WITH CATALOG MANAGEMENT');
-
 export default function HomePage({ route, navigation }: any) {
-  console.log('🔴🔴🔴 HomePage: Rendering HomePage component from /src/screens/HomePage.tsx');
-  console.log('🔴🔴🔴 HomePage: Route params:', route?.params);
-  console.log('🔴🔴🔴 HomePage: Navigation stack:', navigation?.getState());
 
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
@@ -49,7 +42,6 @@ export default function HomePage({ route, navigation }: any) {
     document.addEventListener('click', handleClickOutside);
 
     return () => {
-      console.log('🔴 HomePage: Component unmounted');
       document.removeEventListener('click', handleClickOutside);
     };
   }, [showMenu]);
@@ -57,7 +49,6 @@ export default function HomePage({ route, navigation }: any) {
   useEffect(() => {
     // Check if shop data was passed from SignUpScreen
     if (route?.params?.shop) {
-      console.log('🔴 HomePage: Shop data received from params:', route.params.shop);
       setShopData(route.params.shop);
       setLoading(false);
       // Load catalogs separately for this shop
@@ -78,37 +69,26 @@ export default function HomePage({ route, navigation }: any) {
     try {
       // First check if we got shop data from params
       if (route?.params?.shop) {
-        console.log('🔴 HomePage: Using shop data from route params, skipping API call');
         return; // Already handled in useEffect above
       }
 
       // Otherwise, try to load from AsyncStorage
       let shopId = await AsyncStorage.getItem('shopId');
-      console.log('🔴 HomePage: Loaded shopId from storage:', shopId);
 
       // TEST MODE: If no shopId, use the test shop ID
       if (!shopId) {
         shopId = '695d580b2e5090098478fc26';
-        console.log('🔴 HomePage: Using TEST SHOP ID:', shopId);
         await AsyncStorage.setItem('shopId', shopId);
       }
 
       if (shopId) {
-        console.log('🔴 HomePage: Fetching shop details for ID:', shopId);
         const shop = await apiClient.getShop(shopId);
-        console.log('🔴 HomePage: Fetched shop details:', shop);
-        console.log('🔴 HomePage: About to call setShopData with:', { name: shop.name, owner: shop.owner });
         setShopData(shop);
-        console.log('🔴 HomePage: setShopData called successfully');
         // Catalogs will be loaded separately by useEffect watching shopData
-      } else {
-        console.log('🔴 HomePage: No shopId found');
       }
     } catch (error) {
-      console.error('🔴 HomePage: Error loading shop data:', error);
-      window.alert('Error: Failed to load shop details');
+      console.error('Error loading shop data:', error);
     } finally {
-      console.log('🔴 HomePage: Setting loading to false in finally block');
       setLoading(false);
     }
   };
@@ -117,9 +97,7 @@ export default function HomePage({ route, navigation }: any) {
     try {
       setCatalogsLoading(true);
       setCatalogError(null); // Clear previous errors
-      console.log('🔴 HomePage: Loading catalogs for shop:', shopId);
       const catalogsData = await apiClient.getCatalogsByShopId(shopId);
-      console.log('🔴 HomePage: Loaded catalogs:', catalogsData);
 
       // Handle empty object {} or array response
       if (Array.isArray(catalogsData)) {
@@ -127,12 +105,10 @@ export default function HomePage({ route, navigation }: any) {
         setCatalogError(null);
       } else if (catalogsData && typeof catalogsData === 'object' && Object.keys(catalogsData).length === 0) {
         // Empty object {} - no catalogs
-        console.log('🔴 HomePage: Catalog API returned empty object, setting empty array');
         setCatalogs([]);
         setCatalogError('No catalogs found for this shop yet. Click "Add Catalog" to create your first item!');
       } else {
         // Unexpected response
-        console.log('🔴 HomePage: Unexpected catalog response:', typeof catalogsData);
         setCatalogs([]);
         setCatalogError('No catalogs found for this shop yet. Click "Add Catalog" to create your first item!');
       }
@@ -181,9 +157,7 @@ export default function HomePage({ route, navigation }: any) {
         },
       };
 
-      console.log('🔴 HomePage: Creating catalog:', newCatalog);
       await apiClient.createCatalog(shopData.id, newCatalog);
-      window.alert('Catalog item added successfully!');
 
       // Reset form and reload catalogs
       setCatalogForm({
@@ -199,19 +173,12 @@ export default function HomePage({ route, navigation }: any) {
       setShowAddCatalog(false);
       loadCatalogs(shopData.id);
     } catch (error: any) {
-      console.error('🔴 HomePage: Error adding catalog:', error);
-      window.alert('Error: ' + (error.response?.data?.message || 'Failed to add catalog item'));
+      console.error('Error adding catalog:', error);
     }
   };
 
   const handleEditCatalog = async () => {
-    if (!editingCatalog?.id) {
-      window.alert('Error: No catalog selected for editing');
-      return;
-    }
-
-    if (!catalogForm.name || !catalogForm.category || !catalogForm.price) {
-      window.alert('Please fill in all required fields (Name, Category, Price)');
+    if (!editingCatalog?.id || !catalogForm.name || !catalogForm.category || !catalogForm.price) {
       return;
     }
 
@@ -232,9 +199,7 @@ export default function HomePage({ route, navigation }: any) {
         },
       };
 
-      console.log('🔴 HomePage: Updating catalog:', editingCatalog.id, updatedCatalog);
       await apiClient.updateCatalog(editingCatalog.id, updatedCatalog);
-      window.alert('Catalog item updated successfully!');
 
       // Reset form and reload catalogs
       setEditingCatalog(null);
@@ -250,8 +215,7 @@ export default function HomePage({ route, navigation }: any) {
       });
       loadCatalogs(shopData.id);
     } catch (error: any) {
-      console.error('🔴 HomePage: Error updating catalog:', error);
-      window.alert('Error: ' + (error.response?.data?.message || 'Failed to update catalog item'));
+      console.error('Error updating catalog:', error);
     }
   };
 
@@ -261,13 +225,10 @@ export default function HomePage({ route, navigation }: any) {
     }
 
     try {
-      console.log('🔴 HomePage: Deleting catalog:', catalogId);
       await apiClient.deleteCatalog(catalogId);
-      window.alert('Catalog item deleted successfully!');
       loadCatalogs(shopData.id);
     } catch (error: any) {
-      console.error('🔴 HomePage: Error deleting catalog:', error);
-      window.alert('Error: ' + (error.response?.data?.message || 'Failed to delete catalog item'));
+      console.error('Error deleting catalog:', error);
     }
   };
 
@@ -301,10 +262,7 @@ export default function HomePage({ route, navigation }: any) {
   };
 
   const handleShareQR = async () => {
-    if (!shopData?.qrCodeUrl) {
-      window.alert('Error: QR code URL not available');
-      return;
-    }
+    if (!shopData?.qrCodeUrl) return;
 
     try {
       const message = `Check out my shop: ${shopData.name}\nOwner: ${shopData.owner}\n\nScan QR code or visit: ${shopData.qrCodeUrl}`;
@@ -318,7 +276,6 @@ export default function HomePage({ route, navigation }: any) {
       } else {
         // Fallback: copy to clipboard
         navigator.clipboard.writeText(message);
-        window.alert('Link copied to clipboard!');
       }
     } catch (error) {
       console.error('Error sharing:', error);
@@ -326,10 +283,7 @@ export default function HomePage({ route, navigation }: any) {
   };
 
   const handleShareWhatsApp = async () => {
-    if (!shopData?.qrCodeUrl) {
-      window.alert('Error: QR code URL not available');
-      return;
-    }
+    if (!shopData?.qrCodeUrl) return;
 
     try {
       const message = `Check out my shop: ${shopData.name}\nOwner: ${shopData.owner}\n\nVisit: ${shopData.qrCodeUrl}`;
@@ -337,15 +291,11 @@ export default function HomePage({ route, navigation }: any) {
       window.open(whatsappUrl, '_blank');
     } catch (error) {
       console.error('Error opening WhatsApp:', error);
-      window.alert('Error: Failed to open WhatsApp');
     }
   };
 
   const handleShareTelegram = async () => {
-    if (!shopData?.qrCodeUrl) {
-      window.alert('Error: QR code URL not available');
-      return;
-    }
+    if (!shopData?.qrCodeUrl) return;
 
     try {
       const message = `Check out my shop: ${shopData.name}\nOwner: ${shopData.owner}\n\nVisit: ${shopData.qrCodeUrl}`;
@@ -353,19 +303,31 @@ export default function HomePage({ route, navigation }: any) {
       window.open(telegramUrl, '_blank');
     } catch (error) {
       console.error('Error opening Telegram:', error);
-      window.alert('Error: Failed to open Telegram');
+    }
+  };
+
+  const handleDownloadQR = async () => {
+    if (!shopData?.qrCode) return;
+
+    try {
+      const link = document.createElement('a');
+      link.href = shopData.qrCode;
+      link.download = `${shopData.name || 'shop'}-qr-code.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error downloading QR code:', error);
     }
   };
 
   const handleLogout = async () => {
-    console.log('🔴 HomePage: Logging out - clearing all session data');
     await AsyncStorage.removeItem('shopId');
     await AsyncStorage.removeItem('authToken');
     await AsyncStorage.removeItem('shopName');
     await AsyncStorage.removeItem('userEmail');
     await AsyncStorage.removeItem('publicAccessToken');
     dispatch(setUser(null));
-    console.log('🔴 HomePage: Session cleared, navigating to SignIn');
     navigation?.replace('SignIn');
   };
 
@@ -449,7 +411,33 @@ export default function HomePage({ route, navigation }: any) {
         position: 'relative',
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
       }}>
-        {/* Menu Icon Button */}
+        {/* Logged In User - Top Left Corner */}
+        {user?.email && (
+          <div style={{
+            position: 'absolute',
+            top: '15px',
+            left: '15px',
+            zIndex: 1000,
+          }}>
+            <div style={{
+              padding: '8px 15px',
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              borderRadius: '20px',
+              backdropFilter: 'blur(10px)',
+            }}>
+              <span style={{
+                fontSize: '12px',
+                color: '#fff',
+                fontWeight: '500',
+                whiteSpace: 'nowrap',
+              }}>
+                👤 <strong>{user.email}</strong>
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Menu Icon Button - Top Right Corner */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -463,7 +451,7 @@ export default function HomePage({ route, navigation }: any) {
             border: 'none',
             cursor: 'pointer',
             padding: '10px',
-            zIndex: 1000,
+            zIndex: 9998,
           }}
           aria-label="Menu"
         >
@@ -484,7 +472,7 @@ export default function HomePage({ route, navigation }: any) {
             borderRadius: '8px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
             minWidth: '200px',
-            zIndex: 1001,
+            zIndex: 9999,
             overflow: 'hidden',
           }}>
             <button
@@ -573,33 +561,10 @@ export default function HomePage({ route, navigation }: any) {
             fontWeight: 'bold',
             color: '#fff',
             margin: 0,
-            marginBottom: '8px',
+            marginBottom: '15px',
             textAlign: 'center',
           }}>{shopData.name || 'My Shop'}</h1>
 
-          {/* Logged In User */}
-          {user?.email && (
-            <div style={{
-              textAlign: 'center',
-              marginBottom: '15px',
-            }}>
-              <div style={{
-                display: 'inline-block',
-                padding: '8px 20px',
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                borderRadius: '20px',
-                backdropFilter: 'blur(10px)',
-              }}>
-                <span style={{
-                  fontSize: '13px',
-                  color: '#fff',
-                  fontWeight: '500',
-                }}>
-                  👤 Logged in as: <strong>{user.email}</strong>
-                </span>
-              </div>
-            </div>
-          )}
 
           {/* Shop Details Grid */}
           <div style={{
@@ -1052,6 +1017,24 @@ export default function HomePage({ route, navigation }: any) {
             marginTop: '20px',
             justifyContent: 'center',
           }}>
+            <button
+              onClick={handleDownloadQR}
+              style={{
+                backgroundColor: '#FF6B6B',
+                color: '#fff',
+                padding: '12px 24px',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                flex: '1',
+                minWidth: '120px',
+              }}
+            >
+              📥 Download
+            </button>
+
             <button
               onClick={handleShareQR}
               style={{
