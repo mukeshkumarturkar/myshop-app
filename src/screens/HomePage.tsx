@@ -103,8 +103,22 @@ export default function HomePage({ route, navigation }: any) {
       console.log('🔴 HomePage: Loading catalogs for shop:', shopId);
       const catalogsData = await apiClient.getCatalogsByShopId(shopId);
       console.log('🔴 HomePage: Loaded catalogs:', catalogsData);
-      setCatalogs(catalogsData || []);
-      setCatalogError(null); // Clear error on success
+
+      // Handle empty object {} or array response
+      if (Array.isArray(catalogsData)) {
+        setCatalogs(catalogsData);
+        setCatalogError(null);
+      } else if (catalogsData && typeof catalogsData === 'object' && Object.keys(catalogsData).length === 0) {
+        // Empty object {} - no catalogs
+        console.log('🔴 HomePage: Catalog API returned empty object, setting empty array');
+        setCatalogs([]);
+        setCatalogError('No catalogs found for this shop yet. Click "Add Catalog" to create your first item!');
+      } else {
+        // Unexpected response
+        console.log('🔴 HomePage: Unexpected catalog response:', typeof catalogsData);
+        setCatalogs([]);
+        setCatalogError('No catalogs found for this shop yet. Click "Add Catalog" to create your first item!');
+      }
     } catch (error: any) {
       console.error('🔴 HomePage: Error loading catalogs:', error);
 
