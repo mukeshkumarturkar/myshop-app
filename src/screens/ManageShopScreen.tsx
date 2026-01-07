@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiClient } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SHOP_TYPES, DEFAULT_SHOP_TYPE } from '../config/shopTypes';
 
 export default function ManageShopScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
@@ -13,6 +14,7 @@ export default function ManageShopScreen({ navigation }: any) {
     email: '',
     mobileCountryCode: '91',
     mobileNumber: '',
+    shopType: DEFAULT_SHOP_TYPE,
     theme: {},
   });
 
@@ -35,6 +37,7 @@ export default function ManageShopScreen({ navigation }: any) {
           email: shop.email || '',
           mobileCountryCode: shop.mobileCountryCode || '91',
           mobileNumber: shop.mobileNumber || '',
+          shopType: shop.shopType || DEFAULT_SHOP_TYPE,
           theme: shop.theme || {},
         });
       }
@@ -164,6 +167,37 @@ export default function ManageShopScreen({ navigation }: any) {
             }}
             placeholder="Enter shop name"
           />
+        </div>
+
+        {/* Shop Type */}
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{
+            display: 'block',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#333',
+            marginBottom: '8px',
+          }}>Shop Type *</label>
+          <select
+            value={formData.shopType}
+            onChange={(e) => handleInputChange('shopType', e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              fontSize: '14px',
+              boxSizing: 'border-box',
+              backgroundColor: '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            {SHOP_TYPES.map((type) => (
+              <option key={type.value} value={type.value}>
+                {type.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Address */}

@@ -3,6 +3,7 @@ import { useDispatch } from 'react-redux';
 import { apiClient } from '../services/api';
 import { setUser } from '../store/authSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SHOP_TYPES, DEFAULT_SHOP_TYPE } from '../config/shopTypes';
 
 const SignUpScreen = ({ navigation }: any) => {
   const dispatch = useDispatch();
@@ -16,6 +17,7 @@ const SignUpScreen = ({ navigation }: any) => {
     address: '',
     mobile_country_code: '91',
     mobile_number: '',
+    shopType: DEFAULT_SHOP_TYPE,
   });
 
   const [accountData, setAccountData] = useState({
@@ -61,6 +63,7 @@ const SignUpScreen = ({ navigation }: any) => {
         address: shopData.address.trim(),
         mobileCountryCode: shopData.mobile_country_code,
         mobileNumber: shopData.mobile_number,
+        shopType: shopData.shopType,
         password: accountData.password,
       };
 
@@ -191,6 +194,32 @@ const SignUpScreen = ({ navigation }: any) => {
                   boxSizing: 'border-box',
                 }}
               />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px', color: '#333' }}>
+                Shop Type *
+              </label>
+              <select
+                value={shopData.shopType}
+                onChange={(e) => setShopData({ ...shopData, shopType: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box',
+                  backgroundColor: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                {SHOP_TYPES.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div style={{ marginBottom: '15px' }}>
