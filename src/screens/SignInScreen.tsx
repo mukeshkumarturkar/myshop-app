@@ -59,9 +59,9 @@ const SignInScreen = ({ navigation }: any) => {
         shopName: response.shop_name,
       }));
 
-      console.log('🔴 SignInScreen: Navigating to MainApp');
+      console.log('🔴 SignInScreen: User dispatched to Redux, navigation will happen automatically');
       alert('Signed in successfully!');
-      navigation.replace('MainApp');
+      // Don't manually navigate - Redux state change (isSignedIn: true) will trigger MainApp display
     } catch (error: any) {
       console.error('🔴 SignInScreen: PASSWORD MODE - Sign in error:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Sign in failed';
