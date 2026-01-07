@@ -79,7 +79,14 @@ const SignUpScreen = ({ navigation }: any) => {
 
       // Step 3: Create user for the shop using PUBLIC access token
       console.log('🔴 SignUpScreen: Step 3 - Creating shop user with public token');
-      await apiClient.createUser(shopId, accountData.password, accountData.confirmPassword);
+      await apiClient.createUser({
+        shopId,
+        email: shopSignupData.email,
+        mobileCountryCode: shopSignupData.mobileCountryCode,
+        mobileNumber: shopSignupData.mobileNumber,
+        password: accountData.password,
+        confirmPassword: accountData.confirmPassword,
+      });
       console.log('🔴 SignUpScreen: Shop user created successfully');
 
       // Save shop details

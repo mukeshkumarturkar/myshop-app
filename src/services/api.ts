@@ -216,17 +216,28 @@ class ApiClient {
    * Create a new shop user account
    * Requires public access token
    */
-  async createUser(shopId: string, password: string, confirmPassword: string) {
+  async createUser(data: {
+    shopId: string;
+    email: string;
+    mobileCountryCode: string;
+    mobileNumber: string;
+    password: string;
+    confirmPassword: string;
+  }) {
     try {
-      console.log('🔴 API Client: Creating user for shop:', shopId);
-      console.log('🔴 API Client: Making sure shop has required fields before creating user');
+      console.log('🔴 API Client: Creating user for shop:', data.shopId);
+      console.log('🔴 API Client: User email:', data.email);
+      console.log('🔴 API Client: User mobile:', data.mobileCountryCode + data.mobileNumber);
 
       const token = await this.getPublicAccessToken();
 
       const requestBody = {
-        shopId,
-        password,
-        confirmPassword,
+        shopId: data.shopId,
+        email: data.email,
+        mobileCountryCode: data.mobileCountryCode,
+        mobileNumber: data.mobileNumber,
+        password: data.password,
+        confirmPassword: data.confirmPassword,
       };
 
       console.log('🔴 API Client: Creating user with request body:', JSON.stringify(requestBody, null, 2));
@@ -255,23 +266,23 @@ class ApiClient {
    * Reset user password
    * Requires public access token
    */
-  async resetPassword(
-    userId: string,
-    oldPassword: string,
-    newPassword: string,
-    confirmNewPassword: string
-  ) {
+  async resetPassword(data: {
+    userId: string;
+    oldPassword: string;
+    newPassword: string;
+    confirmNewPassword: string;
+  }) {
     try {
-      console.log('🔴 API Client: Resetting password for user:', userId);
+      console.log('🔴 API Client: Resetting password for user:', data.userId);
       const token = await this.getPublicAccessToken();
 
       const response = await this.client.post(
         '/api/shops/reset-password',
         {
-          userId,
-          oldPassword,
-          newPassword,
-          confirmNewPassword,
+          userId: data.userId,
+          oldPassword: data.oldPassword,
+          newPassword: data.newPassword,
+          confirmNewPassword: data.confirmNewPassword,
         },
         {
           headers: {

@@ -1,31 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useSelector } from 'react-redux';
-import { RootState } from '../store';
 import { apiClient } from '../services/api';
-import QRCode from 'qrcode.react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const ManageShopScreen = ({ navigation }: any) => {
-  const currentShop = useSelector((state: RootState) => state.shop.currentShop);
-  const [loading, setLoading] = useState(false);
-  const [generatingQR, setGeneratingQR] = useState(false);
-  const [qrCode, setQrCode] = useState<string | null>(null);
+export default function ManageShopScreen({ navigation }: any) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [shopData, setShopData] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    address: '',
+    owner: '',
+    email: '',
+    mobileCountryCode: '91',
+    mobileNumber: '',
+    theme: {},
+  });
 
   useEffect(() => {
     loadShopData();
   }, []);
 
   const loadShopData = async () => {
-    setLoading(true);
     try {
+      setLoading(true);
       const shopId = await AsyncStorage.getItem('shopId');
-      if (!shopId) {
-        alert('Shop ID not found');
-        return;
+
+      if (shopId) {
+        const shop = await apiClient.getShop(shopId);
+        setShopData(shop);
+        setFormData({
+          name: shop.name || '',
+          address: shop.address || '',
+          owner: shop.owner || '',
+          email: shop.email || '',
+          mobileCountryCode: shop.mobileCountryCode || '91',
+          mobileNumber: shop.mobileNumber || '',
+          theme: shop.theme || {},
+        });
       }
-      const response = await apiClient.getShop(shopId);
-      // Store in Redux or state as needed
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading shop:', error);
       alert('Failed to load shop data');
     } finally {
@@ -33,43 +46,32 @@ const ManageShopScreen = ({ navigation }: any) => {
     }
   };
 
-  const handleGenerateQR = async () => {
-    setGeneratingQR(true);
-    try {
-      const shopId = await AsyncStorage.getItem('shopId');
-      if (!shopId) {
-        alert('Shop ID not found');
-        return;
-      }
+  const handleUpdate = async () => {
+    if (!shopData?.id) {
+      alert('Shop ID not found');
+      return;
+    }
 
-      const qrElement = document.getElementById('qrcode');
-      if (qrElement) {
-        const canvas = qrElement.querySelector('canvas');
-        if (canvas) {
-          setQrCode(canvas.toDataURL('image/png'));
-          alert('QR Code generated successfully!');
-        }
-      }
+    if (!formData.name || !formData.address || !formData.owner || !formData.email || !formData.mobileNumber) {
+      alert('Please fill all required fields');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const updatedShop = await apiClient.updateShop(shopData.id, formData);
+      setShopData(updatedShop);
+      alert('Shop updated successfully!');
     } catch (error: any) {
-      alert('Failed to generate QR code');
+      console.error('Error updating shop:', error);
+      alert('Failed to update shop: ' + (error.response?.data?.message || error.message));
     } finally {
-      setGeneratingQR(false);
+      setSaving(false);
     }
   };
 
-  const handleShareQR = async () => {
-    try {
-      if (navigator.share && qrCode) {
-        await navigator.share({
-          title: 'My Shop QR Code',
-          text: 'Scan this to view my menu!',
-        });
-      } else {
-        alert('QR Code: ' + qrCode?.substring(0, 50) + '...');
-      }
-    } catch (error: any) {
-      console.error('Error sharing:', error);
-    }
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   if (loading) {
@@ -77,27 +79,12 @@ const ManageShopScreen = ({ navigation }: any) => {
       <div style={{
         width: '100%',
         minHeight: '100vh',
+        backgroundColor: '#f5f5f5',
         display: 'flex',
-        alignItems: 'center',
         justifyContent: 'center',
-      }}>
-        <p>Loading...</p>
-      </div>
-    );
-  }
-
-  if (!currentShop) {
-    return (
-      <div style={{
-        width: '100%',
-        minHeight: '100vh',
-        display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '16px',
-        color: '#d32f2f',
       }}>
-        No shop data available
+        <p>Loading shop details...</p>
       </div>
     );
   }
@@ -105,213 +92,237 @@ const ManageShopScreen = ({ navigation }: any) => {
   return (
     <div style={{
       width: '100%',
-      backgroundColor: '#f5f5f5',
-      padding: '20px',
       minHeight: '100vh',
+      backgroundColor: '#f5f5f5',
+      paddingBottom: '50px',
     }}>
-      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-        <h1 style={{
-          fontSize: '24px',
-          fontWeight: 'bold',
-          marginBottom: '20px',
-          color: '#333',
-        }}>
-          Shop Management
-        </h1>
-
-        {/* Shop Details Card */}
-        <div style={{
-          backgroundColor: '#fff',
-          padding: '20px',
-          borderRadius: '8px',
-          marginBottom: '20px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        }}>
-          <h2 style={{
-            fontSize: '18px',
-            fontWeight: 'bold',
-            marginBottom: '15px',
-            color: '#333',
-          }}>
-            Shop Details
-          </h2>
-
-          <p style={{ marginBottom: '12px', borderBottom: '1px solid #f0f0f0', paddingBottom: '12px' }}>
-            <strong style={{ color: '#666' }}>Shop Name:</strong>
-            <span style={{ color: '#333', float: 'right' }}>{currentShop.name}</span>
-          </p>
-          <p style={{ marginBottom: '12px', borderBottom: '1px solid #f0f0f0', paddingBottom: '12px' }}>
-            <strong style={{ color: '#666' }}>Owner:</strong>
-            <span style={{ color: '#333', float: 'right' }}>{currentShop.owner}</span>
-          </p>
-          <p style={{ marginBottom: '12px', borderBottom: '1px solid #f0f0f0', paddingBottom: '12px' }}>
-            <strong style={{ color: '#666' }}>Email:</strong>
-            <span style={{ color: '#333', float: 'right' }}>{currentShop.email || 'N/A'}</span>
-          </p>
-          <p style={{ marginBottom: '12px', borderBottom: '1px solid #f0f0f0', paddingBottom: '12px' }}>
-            <strong style={{ color: '#666' }}>Address:</strong>
-            <span style={{ color: '#333', float: 'right' }}>{currentShop.address}</span>
-          </p>
-
+      {/* Header */}
+      <div style={{
+        backgroundColor: '#6C63FF',
+        padding: '20px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <button
-            onClick={() => navigation?.navigate?.('EditShop', { shop: currentShop })}
+            onClick={() => navigation?.goBack()}
             style={{
-              width: '100%',
-              backgroundColor: '#f39c12',
-              color: '#fff',
+              backgroundColor: 'transparent',
               border: 'none',
-              padding: '12px',
-              borderRadius: '8px',
+              color: '#fff',
+              fontSize: '24px',
               cursor: 'pointer',
-              fontWeight: 'bold',
-              marginTop: '15px',
+              padding: '5px',
             }}
           >
-            Edit Shop Details
+            ←
           </button>
+          <h1 style={{
+            fontSize: '24px',
+            fontWeight: 'bold',
+            color: '#fff',
+            margin: 0,
+          }}>Manage Shop</h1>
+        </div>
+      </div>
+
+      {/* Form */}
+      <div style={{
+        backgroundColor: '#fff',
+        margin: '20px',
+        padding: '25px',
+        borderRadius: '10px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      }}>
+        <h2 style={{
+          fontSize: '20px',
+          fontWeight: 'bold',
+          color: '#333',
+          marginTop: 0,
+          marginBottom: '20px',
+        }}>Shop Details</h2>
+
+        {/* Shop Name */}
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{
+            display: 'block',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#333',
+            marginBottom: '8px',
+          }}>Shop Name *</label>
+          <input
+            type="text"
+            value={formData.name}
+            onChange={(e) => handleInputChange('name', e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              fontSize: '14px',
+              boxSizing: 'border-box',
+            }}
+            placeholder="Enter shop name"
+          />
         </div>
 
-        {/* QR Code Card */}
-        <div style={{
-          backgroundColor: '#fff',
-          padding: '20px',
-          borderRadius: '8px',
-          marginBottom: '20px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        }}>
-          <h2 style={{
-            fontSize: '18px',
-            fontWeight: 'bold',
-            marginBottom: '15px',
+        {/* Address */}
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{
+            display: 'block',
+            fontSize: '14px',
+            fontWeight: '600',
             color: '#333',
-          }}>
-            QR Code
-          </h2>
+            marginBottom: '8px',
+          }}>Address *</label>
+          <textarea
+            value={formData.address}
+            onChange={(e) => handleInputChange('address', e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              fontSize: '14px',
+              boxSizing: 'border-box',
+              minHeight: '80px',
+              fontFamily: 'inherit',
+            }}
+            placeholder="Enter shop address"
+          />
+        </div>
 
-          {qrCode ? (
-            <>
-              <div style={{
-                textAlign: 'center',
-                padding: '20px',
-                backgroundColor: '#f9f9f9',
+        {/* Owner */}
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{
+            display: 'block',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#333',
+            marginBottom: '8px',
+          }}>Owner Name *</label>
+          <input
+            type="text"
+            value={formData.owner}
+            onChange={(e) => handleInputChange('owner', e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              fontSize: '14px',
+              boxSizing: 'border-box',
+            }}
+            placeholder="Enter owner name"
+          />
+        </div>
+
+        {/* Email */}
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{
+            display: 'block',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#333',
+            marginBottom: '8px',
+          }}>Email *</label>
+          <input
+            type="email"
+            value={formData.email}
+            onChange={(e) => handleInputChange('email', e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              fontSize: '14px',
+              boxSizing: 'border-box',
+            }}
+            placeholder="Enter email"
+          />
+        </div>
+
+        {/* Mobile Number */}
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{
+            display: 'block',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#333',
+            marginBottom: '8px',
+          }}>Mobile Number *</label>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <input
+              type="text"
+              value={formData.mobileCountryCode}
+              onChange={(e) => handleInputChange('mobileCountryCode', e.target.value)}
+              style={{
+                width: '80px',
+                padding: '12px',
+                border: '1px solid #ddd',
                 borderRadius: '8px',
-                marginBottom: '15px',
-              }}>
-                <img
-                  src={qrCode}
-                  alt="QR Code"
-                  style={{
-                    width: '250px',
-                    height: '250px',
-                  }}
-                />
-              </div>
-              <p style={{
-                fontSize: '12px',
-                color: '#666',
-                textAlign: 'center',
-                marginBottom: '15px',
-                fontStyle: 'italic',
-              }}>
-                Customers can scan this QR code to view your menu
-              </p>
-              <button
-                onClick={handleShareQR}
-                style={{
-                  width: '100%',
-                  backgroundColor: '#27ae60',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                }}
-              >
-                Share QR Code
-              </button>
-            </>
-          ) : (
-            <>
-              <p style={{
                 fontSize: '14px',
-                color: '#999',
-                textAlign: 'center',
-                marginBottom: '15px',
-              }}>
-                No QR code generated yet
-              </p>
-              <button
-                onClick={handleGenerateQR}
-                disabled={generatingQR}
-                style={{
-                  width: '100%',
-                  backgroundColor: '#6C63FF',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                  opacity: generatingQR ? 0.6 : 1,
-                }}
-              >
-                {generatingQR ? 'Generating...' : 'Generate QR Code'}
-              </button>
-            </>
-          )}
-
-          {/* Hidden QR Code Generator */}
-          <div style={{ display: 'none' }} id="qrcode">
-            <QRCode value={currentShop._id || 'shop'} />
+                boxSizing: 'border-box',
+              }}
+              placeholder="+91"
+            />
+            <input
+              type="text"
+              value={formData.mobileNumber}
+              onChange={(e) => handleInputChange('mobileNumber', e.target.value)}
+              style={{
+                flex: 1,
+                padding: '12px',
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                fontSize: '14px',
+                boxSizing: 'border-box',
+              }}
+              placeholder="Enter mobile number"
+            />
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div style={{
-          display: 'flex',
-          gap: '10px',
-          marginTop: '20px',
-          marginBottom: '20px',
-        }}>
+        {/* Buttons */}
+        <div style={{ display: 'flex', gap: '15px', marginTop: '30px' }}>
           <button
-            onClick={() => navigation?.navigate?.('CatalogList')}
+            onClick={handleUpdate}
+            disabled={saving}
             style={{
               flex: 1,
-              backgroundColor: '#3498db',
+              backgroundColor: '#6C63FF',
               color: '#fff',
-              border: 'none',
               padding: '14px',
+              border: 'none',
               borderRadius: '8px',
-              cursor: 'pointer',
+              fontSize: '16px',
               fontWeight: 'bold',
-              fontSize: '14px',
+              cursor: saving ? 'not-allowed' : 'pointer',
+              opacity: saving ? 0.6 : 1,
             }}
           >
-            Manage Catalog
+            {saving ? 'Saving...' : 'Update Shop'}
           </button>
 
           <button
-            onClick={loadShopData}
+            onClick={() => navigation?.goBack()}
             style={{
               flex: 1,
-              backgroundColor: '#95a5a6',
-              color: '#fff',
-              border: 'none',
+              backgroundColor: '#fff',
+              color: '#6C63FF',
               padding: '14px',
+              border: '2px solid #6C63FF',
               borderRadius: '8px',
-              cursor: 'pointer',
+              fontSize: '16px',
               fontWeight: 'bold',
-              fontSize: '14px',
+              cursor: 'pointer',
             }}
           >
-            Refresh
+            Cancel
           </button>
         </div>
       </div>
     </div>
   );
-};
-
-export default ManageShopScreen;
+}
 

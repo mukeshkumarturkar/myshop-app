@@ -4,16 +4,37 @@ info:
   description: |
     Complete REST API for Shop and Catalog management with authentication, QR code generation, and menu access.
     
+    ## User Management
+    
+    ### Unified User System
+    All users (both shop owners and staff) are stored in the same `shop_user` collection with role-based access:
+    - **ADMIN**: Shop owner with full CRUD access (created automatically during shop registration)
+    - **STAFF**: Support staff with limited access (created via `/api/shops/user`)
+    
+    ### User Authentication
+    Users can authenticate using either:
+    - **Mobile Number**: countryCode + mobileNumber (e.g., 919876543210)
+    - **Email**: email address associated with the user
+    
     ## Authentication Flow
     
     ### Public Access (No Login Required)
     1. Get public token: `POST /api/shops/auth` with empty body `{}`
     2. Use `publicAccessToken` for read-only access (valid 7 days)
     
-    ### Shop Owner Access (Full CRUD)
-    1. Create user: `POST /api/shops/user`
-    2. Login: `POST /api/shops/auth` with userId & password
-    3. Use `oauthToken` for protected operations (valid 90 days)
+    ### Shop Owner/Staff Access (Full CRUD)
+    1. **Option A - During Shop Creation:**
+       - Create shop with password: `POST /api/shops` (includes password field)
+       - ADMIN user is created automatically with shop's email/mobile as userId
+    
+    2. **Option B - Manual User Creation:**
+       - Create user: `POST /api/shops/user` (specify role: ADMIN or STAFF)
+       - Optionally provide email/mobile, or use shop's defaults
+    
+    3. **Login:**
+       - `POST /api/shops/auth` with userId (email or mobile) & password
+       - Both email and mobile can be used as userId for authentication
+       - Receive `oauthToken` for protected operations (valid 90 days)
     
     ## Public Endpoints (Public Token)
     - All GET endpoints for shops and catalogs
@@ -112,9 +133,6 @@ components:
         - name
         - address
         - owner
-        - email
-        - mobileCountryCode
-        - mobileNumber
       properties:
         name:
           type: string
@@ -128,16 +146,25 @@ components:
         email:
           type: string
           format: email
+          description: Shop email - can be used as userId for authentication
           example: "shop@example.com"
         mobileCountryCode:
           type: string
+          description: Mobile country code (e.g., 91 for India)
           example: "91"
         mobileNumber:
           type: string
+          description: Mobile number (without country code) - can be used as userId
           example: "9876543210"
+        password:
+          type: string
+          format: password
+          description: Optional - if provided, automatically creates an ADMIN user
+          example: "SecurePass123!"
         theme:
           type: object
           additionalProperties: true
+          description: Shop theme configuration (colors, menu style, etc.)
 
     Catalog:
       type: object
@@ -255,6 +282,64 @@ components:
           type: string
           format: password
           example: "SecurePass123!"
+        role:
+          type: string
+          enum: [ADMIN, STAFF]
+          description: User role - ADMIN (shop owner) or STAFF (support staff). Default is STAFF
+          example: "STAFF"
+        email:
+          type: string
+          format: email
+          description: Optional - email for this user. If not provided, uses shop's email
+          example: "staff@example.com"
+        mobileCountryCode:
+          type: string
+          description: Optional - mobile country code. If not provided, uses shop's mobile
+          example: "91"
+        mobileNumber:
+          type: string
+          description: Optional - mobile number. If not provided, uses shop's mobile
+          example: "8087047070"
+
+    ShopUser:
+      type: object
+      description: Unified user entity for both Admin (shop owners) and Staff users
+      properties:
+        id:
+          type: string
+          example: "user123"
+        userId:
+          type: string
+          description: Can be mobile number (countryCode+mobile) or email
+          example: "919876543210"
+        shopId:
+          type: string
+          example: "695d580b2e5090098478fc26"
+        role:
+          type: string
+          enum: [ADMIN, STAFF]
+          description: ADMIN = shop owner with full access, STAFF = support staff with limited access
+          example: "ADMIN"
+        email:
+          type: string
+          format: email
+          example: "admin@shop.com"
+        mobileCountryCode:
+          type: string
+          example: "91"
+        mobileNumber:
+          type: string
+          example: "9876543210"
+        status:
+          type: string
+          enum: [ACTIVE, SUSPENDED, DELETED]
+          example: "ACTIVE"
+        createdAt:
+          type: string
+          format: date-time
+        lastLogin:
+          type: string
+          format: date-time
 
     AuthRequest:
       type: object
@@ -370,7 +455,9 @@ paths:
       tags:
         - Shops
       summary: Create a new shop
-      description: Create a new shop with basic details
+      description: |
+        Create a new shop with automatic QR code generation.
+        If password is provided, automatically creates an ADMIN user for the shop.
       operationId: createShop
       security:
         - PublicToken: []
@@ -380,19 +467,61 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ShopCreate'
+            examples:
+              withPassword:
+                summary: Create shop with admin user
+                value:
+                  name: "Pizza Palace"
+                  address: "123 Main St, New York, NY"
+                  owner: "John Doe"
+                  email: "shop@pizzapalace.com"
+                  mobileCountryCode: "91"
+                  mobileNumber: "9876543210"
+                  password: "SecurePass123!"
+                  theme:
+                    colors:
+                      primary: "#FF6B6B"
+                      secondary: "#FFFFFF"
+                    menu: "Italian pizza and pasta"
+                    lookAndFeel: "Modern and cozy"
+              withoutPassword:
+                summary: Create shop without user (legacy)
+                value:
+                  name: "Quick Mart"
+                  address: "456 Oak Ave"
+                  owner: "Jane Smith"
+                  theme: {}
       responses:
         '201':
-          description: Shop created successfully
+          description: Shop created successfully (with QR code and optional admin user)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Shop'
+              example:
+                id: "695d580b2e5090098478fc26"
+                name: "Pizza Palace"
+                address: "123 Main St, New York, NY"
+                owner: "John Doe"
+                email: "shop@pizzapalace.com"
+                mobileCountryCode: "91"
+                mobileNumber: "9876543210"
+                theme:
+                  colors:
+                    primary: "#FF6B6B"
+                    secondary: "#FFFFFF"
+                qrCode: "data:image/png;base64,iVBORw0KG..."
+                qrCodeUrl: "https://myshop.soanch.com/web-menu?shopid=695d580b2e5090098478fc26"
         '400':
           description: Invalid input
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              example:
+                status: "error"
+                message: "Validation error"
+                details: "Shop name is required"
 
     delete:
       tags:
@@ -570,11 +699,20 @@ paths:
     post:
       tags:
         - Authentication
-      summary: Create shop user account
+      summary: Create shop user account (Admin or Staff)
       description: |
-        Create a new user account for a shop.
-        User ID is automatically set to mobile number from shop.
-        Password is hashed using BCrypt.
+        Create a new user account for a shop in the unified shop_users collection.
+        
+        **User Roles:**
+        - ADMIN: Shop owner with full access
+        - STAFF: Support staff with limited access (default)
+        
+        **UserID Priority:**
+        1. If email provided → use as userId
+        2. If mobileCountryCode+mobileNumber provided → use as userId
+        3. Otherwise → use shop's mobile number (backward compatible)
+        
+        Password is hashed using BCrypt before storage.
       operationId: createUser
       security:
         - PublicToken: []
@@ -584,9 +722,34 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateUserRequest'
+            examples:
+              createStaffWithEmail:
+                summary: Create STAFF user with email
+                value:
+                  shopId: "695d580b2e5090098478fc26"
+                  password: "StaffPass123!"
+                  confirmPassword: "StaffPass123!"
+                  role: "STAFF"
+                  email: "staff@pizzapalace.com"
+                  mobileCountryCode: "91"
+                  mobileNumber: "8087047070"
+              createAdminExplicit:
+                summary: Create ADMIN user explicitly
+                value:
+                  shopId: "695d580b2e5090098478fc26"
+                  password: "AdminPass123!"
+                  confirmPassword: "AdminPass123!"
+                  role: "ADMIN"
+                  email: "admin2@pizzapalace.com"
+              legacyCreate:
+                summary: Legacy create (uses shop mobile)
+                value:
+                  shopId: "695d580b2e5090098478fc26"
+                  password: "SecurePass123!"
+                  confirmPassword: "SecurePass123!"
       responses:
         '201':
-          description: User created successfully
+          description: User created successfully in shop_users collection
           content:
             application/json:
               schema:
@@ -594,20 +757,38 @@ paths:
                 properties:
                   status:
                     type: string
+                    example: "success"
                   message:
                     type: string
+                    example: "User created successfully"
                   userId:
                     type: string
+                    example: "staff@pizzapalace.com"
                   shopId:
                     type: string
+                    example: "695d580b2e5090098478fc26"
                   createdAt:
                     type: string
+                    format: date-time
         '400':
           description: Invalid request
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                userExists:
+                  summary: User already exists
+                  value:
+                    status: "error"
+                    message: "Error creating user"
+                    details: "User already exists with userId: staff@pizzapalace.com"
+                passwordMismatch:
+                  summary: Password mismatch
+                  value:
+                    status: "error"
+                    message: "Error creating user"
+                    details: "Passwords do not match"
 
   /api/shops/auth:
     post:
@@ -615,17 +796,24 @@ paths:
         - Authentication
       summary: Login / Get access tokens
       description: |
-        Two authentication modes:
+        **Two authentication modes:**
         
-        **PUBLIC MODE** (No credentials):
+        **PUBLIC MODE** (No credentials required):
         - Request: `{}` or `{"shopId": "optional"}`
-        - Returns: publicAccessToken (7 days, READ-ONLY)
+        - Returns: publicAccessToken (7 days validity, READ-ONLY access)
         - authLevel: "Public"
+        - Use for: Viewing shop menus, catalog browsing
         
         **PASSWORD MODE** (With credentials):
         - Request: `{"userId": "mobile/email", "password": "pwd"}`
-        - Returns: oauthToken + publicAccessToken
+        - Returns: oauthToken (90 days) + publicAccessToken (7 days)
         - authLevel: "Password"
+        - Use for: Full CRUD operations, shop management
+        
+        **Flexible UserID:**
+        - Mobile with country code: `919876543210`
+        - Email from user: `staff@pizzapalace.com`
+        - Email from shop: `shop@pizzapalace.com`
       operationId: authenticate
       requestBody:
         content:
@@ -633,13 +821,22 @@ paths:
             schema:
               $ref: '#/components/schemas/AuthRequest'
             examples:
-              public:
+              publicAccess:
                 summary: Public access (no login)
                 value: {}
-              password:
-                summary: Shop owner login
+              publicAccessWithShop:
+                summary: Public access for specific shop
+                value:
+                  shopId: "695d580b2e5090098478fc26"
+              passwordWithMobile:
+                summary: Login with mobile number
                 value:
                   userId: "919876543210"
+                  password: "SecurePass123!"
+              passwordWithEmail:
+                summary: Login with email
+                value:
+                  userId: "shop@pizzapalace.com"
                   password: "SecurePass123!"
       responses:
         '200':
@@ -648,19 +845,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthResponse'
+              examples:
+                publicResponse:
+                  summary: Public access response
+                  value:
+                    status: "success"
+                    message: "Public access token generated"
+                    authLevel: "Public"
+                    publicAccessToken: "eyJhbGciOiJIUzI1NiJ9..."
+                    shopId: "public"
+                    publicTokenExpiresInDays: 7
+                passwordResponse:
+                  summary: Password authentication response
+                  value:
+                    status: "success"
+                    message: "Authentication successful"
+                    authLevel: "Password"
+                    oauthToken: "eyJhbGciOiJIUzI1NiJ9..."
+                    publicAccessToken: "eyJhbGciOiJIUzI1NiJ9..."
+                    shopId: "695d580b2e5090098478fc26"
+                    userId: "919876543210"
+                    expiresInDays: 90
+                    publicTokenExpiresInDays: 7
         '401':
           description: Invalid credentials
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              example:
+                status: "error"
+                message: "Invalid credentials"
 
   /api/shops/reset-password:
     post:
       tags:
         - Authentication
       summary: Reset password
-      description: Reset user password with old password verification
+      description: |
+        Reset user password with old password verification.
+        Works with both mobile number and email as userId.
       operationId: resetPassword
       security:
         - PublicToken: []
@@ -670,6 +894,21 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ResetPasswordRequest'
+            examples:
+              withMobile:
+                summary: Reset with mobile number
+                value:
+                  userId: "919876543210"
+                  oldPassword: "OldPass123!"
+                  newPassword: "NewPass123!"
+                  confirmNewPassword: "NewPass123!"
+              withEmail:
+                summary: Reset with email
+                value:
+                  userId: "shop@pizzapalace.com"
+                  oldPassword: "OldPass123!"
+                  newPassword: "NewPass123!"
+                  confirmNewPassword: "NewPass123!"
       responses:
         '200':
           description: Password reset successfully
@@ -677,12 +916,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Success'
+              example:
+                status: "success"
+                message: "Password reset successfully"
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                passwordMismatch:
+                  summary: New passwords don't match
+                  value:
+                    status: "error"
+                    message: "Password reset failed"
+                    details: "New passwords do not match"
         '401':
           description: Invalid old password
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              example:
+                status: "error"
+                message: "Password reset failed"
+                details: "Invalid userId or password"
 
   # ==================== MENU ENDPOINTS ====================
 
@@ -692,8 +951,9 @@ paths:
         - Menus
       summary: Get shop menu with catalog items
       description: |
-        Returns complete shop details with all catalog items.
-        Perfect for displaying menu to customers who scan QR code.
+        Returns complete shop details with all catalog items and prices.
+        Perfect endpoint for displaying menu to customers who scan QR code.
+        Accessible with public token (no authentication required).
       operationId: getShopMenu
       security:
         - PublicToken: []
@@ -711,12 +971,43 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ShopMenuDTO'
+              example:
+                shopId: "695d580b2e5090098478fc26"
+                shopName: "Pizza Palace"
+                address: "123 Main St, New York, NY"
+                owner: "John Doe"
+                email: "shop@pizzapalace.com"
+                mobileCountryCode: "91"
+                mobileNumber: "9876543210"
+                qrCodeUrl: "https://myshop.soanch.com/web-menu?shopid=695d580b2e5090098478fc26"
+                theme:
+                  colors:
+                    primary: "#FF6B6B"
+                    secondary: "#FFFFFF"
+                catalogItems:
+                  - id: "cat001"
+                    name: "Margherita Pizza"
+                    category: "Pizza"
+                    shopId: "695d580b2e5090098478fc26"
+                    unit: "piece"
+                    price:
+                      currency: "INR"
+                      value: 299.00
+                    availability:
+                      startTime: "09:00:00"
+                      endTime: "22:00:00"
+                    status: "ACTIVE"
+                totalItems: 1
         '404':
           description: Shop not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              example:
+                status: "error"
+                message: "Shop not found"
+                details: "No shop found with ID: 695d580b2e5090098478fc26"
 
   # ==================== QR CODE ENDPOINTS ====================
 
@@ -727,7 +1018,8 @@ paths:
       summary: Generate QR code for shop
       description: |
         Generate QR code that links to shop menu.
-        QR code URL: https://myshop.soanch.com/web-menu?shopid={shopId}
+        QR code URL format: https://myshop.soanch.com/web-menu?shopid={shopId}
+        Returns base64 encoded PNG image that can be displayed or printed.
       operationId: generateQRCode
       security:
         - OAuthToken: []
@@ -737,6 +1029,7 @@ paths:
           required: true
           schema:
             type: string
+          example: "695d580b2e5090098478fc26"
       responses:
         '200':
           description: QR code generated successfully
@@ -747,17 +1040,30 @@ paths:
                 properties:
                   status:
                     type: string
+                    example: "success"
                   message:
                     type: string
+                    example: "QR code generated successfully"
                   shopId:
                     type: string
+                    example: "695d580b2e5090098478fc26"
                   qrCodeUrl:
                     type: string
+                    example: "https://myshop.soanch.com/web-menu?shopid=695d580b2e5090098478fc26"
                   qrCode:
                     type: string
-                    description: Base64 encoded image
+                    description: Base64 encoded PNG image
+                    example: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
         '404':
           description: Shop not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: "error"
+                message: "Shop not found"
+                details: "No shop found with ID: invalid-id"
 
   /api/shops/{shopId}/qr-code:
     get:
@@ -820,7 +1126,10 @@ paths:
       tags:
         - Catalogs
       summary: Create catalog item
-      description: Add a new catalog item to a shop
+      description: |
+        Add a new catalog item to a shop's menu.
+        Supports various item types: food items, products, services.
+        Includes pricing, availability schedules, and stock management.
       operationId: createCatalog
       security:
         - OAuthToken: []
@@ -830,6 +1139,56 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Catalog'
+            examples:
+              restaurantItem:
+                summary: Restaurant menu item
+                value:
+                  name: "Margherita Pizza"
+                  description: "Classic Italian pizza with tomato and mozzarella"
+                  category: "Pizza"
+                  shopId: "695d580b2e5090098478fc26"
+                  unit: "piece"
+                  price:
+                    currency: "INR"
+                    value: 299.00
+                    discountPercentage: 10
+                    discountedPrice: 269.10
+                  availability:
+                    isAvailable: true
+                    startTime: "09:00"
+                    endTime: "22:00"
+                    availableDays: ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
+                  status: "ACTIVE"
+              vegetableShop:
+                summary: Vegetable shop item
+                value:
+                  name: "Tomatoes"
+                  category: "Vegetables"
+                  shopId: "695d580b2e5090098478fc26"
+                  unit: "kg"
+                  price:
+                    currency: "INR"
+                    value: 45.00
+                  availability:
+                    startTime: "06:00"
+                    endTime: "20:00"
+                  stock:
+                    quantity: 100
+                    minQuantity: 10
+                  status: "ACTIVE"
+              generalStore:
+                summary: General store product
+                value:
+                  name: "Coca Cola 1L"
+                  category: "Beverages"
+                  shopId: "695d580b2e5090098478fc26"
+                  unit: "piece"
+                  price:
+                    currency: "INR"
+                    value: 75.00
+                  stock:
+                    quantity: 50
+                  status: "ACTIVE"
       responses:
         '201':
           description: Catalog created successfully
@@ -837,12 +1196,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Catalog'
+              example:
+                id: "cat001"
+                name: "Margherita Pizza"
+                description: "Classic Italian pizza with tomato and mozzarella"
+                category: "Pizza"
+                shopId: "695d580b2e5090098478fc26"
+                unit: "piece"
+                price:
+                  currency: "INR"
+                  value: 299.00
+                availability:
+                  startTime: "09:00:00"
+                  endTime: "22:00:00"
+                status: "ACTIVE"
+                createdAt: "2026-01-07T10:00:00Z"
+                updatedAt: "2026-01-07T10:00:00Z"
         '400':
           description: Validation error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              example:
+                status: "error"
+                message: "Validation error"
+                details: "Catalog name is required"
 
   /api/catalogs/{id}:
     get:

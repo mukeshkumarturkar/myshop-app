@@ -21,6 +21,7 @@ export default function HomePage({ route, navigation }: any) {
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [showAddCatalog, setShowAddCatalog] = useState(false);
   const [editingCatalog, setEditingCatalog] = useState<any>(null);
+  const [showMenu, setShowMenu] = useState(false);
   const [catalogForm, setCatalogForm] = useState({
     name: '',
     category: '',
@@ -36,11 +37,20 @@ export default function HomePage({ route, navigation }: any) {
     console.log('🔴 HomePage: Component mounted');
     loadShopData();
 
+    // Close menu when clicking outside
+    const handleClickOutside = (e: MouseEvent) => {
+      if (showMenu) {
+        setShowMenu(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
 
     return () => {
       console.log('🔴 HomePage: Component unmounted');
+      document.removeEventListener('click', handleClickOutside);
     };
-  }, []);
+  }, [showMenu]);
 
   useEffect(() => {
     // Check if shop data was passed from SignUpScreen
@@ -429,124 +439,159 @@ export default function HomePage({ route, navigation }: any) {
       }}
     >
 
-      {/* Header */}
+      {/* Header with Menu and Shop Information */}
       <div style={{
         backgroundColor: '#6C63FF',
         padding: '20px',
         paddingTop: '40px',
-        textAlign: 'center',
+        position: 'relative',
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
       }}>
-        <h1 style={{
-          fontSize: '24px',
-          fontWeight: 'bold',
-          color: '#fff',
-          marginBottom: '5px',
-          margin: 0,
-        }}>{shopData.name || 'My Shop'}</h1>
-        <p style={{
-          fontSize: '14px',
-          color: '#f0f0f0',
-          margin: 0,
-          marginTop: '5px',
-        }}>Owner: {shopData.owner || 'N/A'}</p>
+        {/* Menu Icon Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowMenu(!showMenu);
+          }}
+          style={{
+            position: 'absolute',
+            top: '15px',
+            right: '15px',
+            backgroundColor: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '10px',
+            zIndex: 1000,
+          }}
+          aria-label="Menu"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ width: '25px', height: '3px', backgroundColor: '#fff', borderRadius: '2px' }}></div>
+            <div style={{ width: '25px', height: '3px', backgroundColor: '#fff', borderRadius: '2px' }}></div>
+            <div style={{ width: '25px', height: '3px', backgroundColor: '#fff', borderRadius: '2px' }}></div>
+          </div>
+        </button>
+
+        {/* Dropdown Menu */}
+        {showMenu && (
+          <div style={{
+            position: 'absolute',
+            top: '60px',
+            right: '15px',
+            backgroundColor: '#fff',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            minWidth: '200px',
+            zIndex: 1001,
+            overflow: 'hidden',
+          }}>
+            <button
+              onClick={() => {
+                setShowMenu(false);
+                navigation?.navigate('ManageShopScreen');
+              }}
+              style={{
+                width: '100%',
+                padding: '15px 20px',
+                backgroundColor: '#fff',
+                border: 'none',
+                borderBottom: '1px solid #eee',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '15px',
+                color: '#333',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#fff'}
+            >
+              <span style={{ fontSize: '18px' }}>🏪</span>
+              Manage Shop
+            </button>
+
+            <button
+              onClick={() => {
+                setShowMenu(false);
+                navigation?.navigate('ManageUsersScreen');
+              }}
+              style={{
+                width: '100%',
+                padding: '15px 20px',
+                backgroundColor: '#fff',
+                border: 'none',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '15px',
+                color: '#333',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#fff'}
+            >
+              <span style={{ fontSize: '18px' }}>👥</span>
+              Manage Users
+            </button>
+          </div>
+        )}
+
+        {/* Shop Information - All Details in Header */}
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <h1 style={{
+            fontSize: '24px',
+            fontWeight: 'bold',
+            color: '#fff',
+            margin: 0,
+            marginBottom: '15px',
+            textAlign: 'center',
+          }}>{shopData.name || 'My Shop'}</h1>
+
+          {/* Shop Details Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '10px',
+            fontSize: '13px',
+            color: '#f0f0f0',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ fontWeight: '600' }}>👤 Owner:</span>
+              <span>{shopData.owner || 'N/A'}</span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ fontWeight: '600' }}>📧 Email:</span>
+              <span style={{ wordBreak: 'break-all' }}>{shopData.email || 'N/A'}</span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ fontWeight: '600' }}>📍 Address:</span>
+              <span>{shopData.address || 'N/A'}</span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ fontWeight: '600' }}>📱 Mobile:</span>
+              <span>+{shopData.mobileCountryCode} {shopData.mobileNumber}</span>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              gridColumn: 'span 2',
+              fontSize: '12px',
+              opacity: 0.8,
+            }}>
+              <span style={{ fontWeight: '600' }}>🆔 Shop ID:</span>
+              <span style={{ fontFamily: 'monospace' }}>{shopData.id || 'N/A'}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Shop Details Card */}
-      <div style={{
-        backgroundColor: '#fff',
-        margin: '15px',
-        padding: '20px',
-        borderRadius: '10px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      }}>
-        <h2 style={{
-          fontSize: '20px',
-          fontWeight: 'bold',
-          color: '#333',
-          marginBottom: '15px',
-          marginTop: 0,
-        }}>Shop Information</h2>
-
-        <div style={{ marginBottom: '12px' }}>
-          <span style={{
-            fontSize: '14px',
-            color: '#666',
-            fontWeight: '600',
-            marginRight: '10px',
-          }}>Shop Name:</span>
-          <span style={{
-            fontSize: '16px',
-            color: '#333',
-          }}>{shopData.name}</span>
-        </div>
-
-        <div style={{ marginBottom: '12px' }}>
-          <span style={{
-            fontSize: '14px',
-            color: '#666',
-            fontWeight: '600',
-            marginRight: '10px',
-          }}>Owner:</span>
-          <span style={{
-            fontSize: '16px',
-            color: '#333',
-          }}>{shopData.owner}</span>
-        </div>
-
-        <div style={{ marginBottom: '12px' }}>
-          <span style={{
-            fontSize: '14px',
-            color: '#666',
-            fontWeight: '600',
-            marginRight: '10px',
-          }}>Address:</span>
-          <span style={{
-            fontSize: '16px',
-            color: '#333',
-          }}>{shopData.address}</span>
-        </div>
-
-        <div style={{ marginBottom: '12px' }}>
-          <span style={{
-            fontSize: '14px',
-            color: '#666',
-            fontWeight: '600',
-            marginRight: '10px',
-          }}>Email:</span>
-          <span style={{
-            fontSize: '16px',
-            color: '#333',
-          }}>{shopData.email}</span>
-        </div>
-
-        <div style={{ marginBottom: '12px' }}>
-          <span style={{
-            fontSize: '14px',
-            color: '#666',
-            fontWeight: '600',
-            marginRight: '10px',
-          }}>Mobile:</span>
-          <span style={{
-            fontSize: '16px',
-            color: '#333',
-          }}>+{shopData.mobileCountryCode} {shopData.mobileNumber}</span>
-        </div>
-
-        <div style={{ marginBottom: '12px' }}>
-          <span style={{
-            fontSize: '14px',
-            color: '#666',
-            fontWeight: '600',
-            marginRight: '10px',
-          }}>Shop ID:</span>
-          <span style={{
-            fontSize: '16px',
-            color: '#333',
-            fontFamily: 'monospace',
-          }}>{shopData.id}</span>
-        </div>
-      </div>
 
       {/* Catalog Management Section */}
       <div style={{

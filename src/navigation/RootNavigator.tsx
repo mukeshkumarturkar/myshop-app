@@ -13,6 +13,7 @@ import SignUpScreen from '../screens/SignUpScreen';
 import SignInScreen from '../screens/SignInScreen';
 import HomePage from '../screens/HomePage';
 import ManageShopScreen from '../screens/ManageShopScreen';
+import ManageUsersScreen from '../screens/ManageUsersScreen';
 import CatalogListScreen from '../screens/CatalogListScreen';
 import CatalogDetailScreen from '../screens/CatalogDetailScreen';
 import EditShopScreen from '../screens/EditShopScreen';
@@ -81,6 +82,7 @@ const ShopStackNavigator = () => {
         }}
       />
       <ShopStack.Screen name="ManageShopScreen" component={ManageShopScreen} />
+      <ShopStack.Screen name="ManageUsersScreen" component={ManageUsersScreen} />
       <ShopStack.Screen name="EditShop" component={EditShopScreen} />
       <ShopStack.Screen name="CatalogList" component={CatalogStackNavigator} />
     </ShopStack.Navigator>

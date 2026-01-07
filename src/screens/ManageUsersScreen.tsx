@@ -1,84 +1,136 @@
 import React, { useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const ManageUsersScreen = ({ navigation }: any) => {
-  const [users, setUsers] = useState([]);
+export default function ManageUsersScreen({ navigation }: any) {
   const [loading, setLoading] = useState(false);
-  const [newUser, setNewUser] = useState({
-    name: '',
+  const [shopId, setShopId] = useState('');
+  const [activeTab, setActiveTab] = useState<'add' | 'reset'>('add');
+
+  // Add User Form
+  const [addUserForm, setAddUserForm] = useState({
     email: '',
-    phone_country_code: '91',
-    phone_number: '',
+    mobileCountryCode: '91',
+    mobileNumber: '',
+    password: '',
+    confirmPassword: '',
+  });
+
+  // Reset Password Form
+  const [resetPasswordForm, setResetPasswordForm] = useState({
+    userId: '',
+    oldPassword: '',
+    newPassword: '',
+    confirmNewPassword: '',
   });
 
   useEffect(() => {
-    loadUsers();
+    loadShopId();
   }, []);
 
-  const loadUsers = async () => {
-    setLoading(true);
-    try {
-      const shopId = await AsyncStorage.getItem('shopId');
-      if (!shopId) {
-        alert('Shop ID not found');
-        return;
-      }
-      const response = await apiClient.getShopUsers(shopId);
-      setUsers(response.data || []);
-    } catch (error: any) {
-      console.error('Error loading users:', error);
-      alert('Failed to load users');
-    } finally {
-      setLoading(false);
+  const loadShopId = async () => {
+    const id = await AsyncStorage.getItem('shopId');
+    if (id) {
+      setShopId(id);
     }
   };
 
   const handleAddUser = async () => {
-    if (!newUser.name.trim() || !newUser.email.trim()) {
-      alert('Please enter name and email');
+    if (!shopId) {
+      alert('Shop ID not found');
       return;
     }
 
-    setLoading(true);
+    if (!addUserForm.email || !addUserForm.mobileNumber || !addUserForm.password || !addUserForm.confirmPassword) {
+      alert('Please fill all required fields');
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(addUserForm.email)) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
+    // Validate mobile number (should be 10 digits)
+    if (addUserForm.mobileNumber.length < 10) {
+      alert('Please enter a valid mobile number (minimum 10 digits)');
+      return;
+    }
+
+    if (addUserForm.password !== addUserForm.confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+
+    if (addUserForm.password.length < 6) {
+      alert('Password must be at least 6 characters');
+      return;
+    }
+
     try {
-      const shopId = await AsyncStorage.getItem('shopId');
-      if (!shopId) {
-        alert('Shop ID not found');
-        return;
-      }
-
-      await apiClient.addShopUser(shopId, {
-        name: newUser.name,
-        email: newUser.email,
-        phone_country_code: newUser.phone_country_code,
-        phone_number: newUser.phone_number,
+      setLoading(true);
+      const response = await apiClient.createUser({
+        shopId,
+        email: addUserForm.email,
+        mobileCountryCode: addUserForm.mobileCountryCode,
+        mobileNumber: addUserForm.mobileNumber,
+        password: addUserForm.password,
+        confirmPassword: addUserForm.confirmPassword,
       });
 
-      alert('User added successfully');
-      setNewUser({
-        name: '',
+      console.log('User created:', response);
+      alert(`User created successfully!\nUser ID: ${addUserForm.mobileCountryCode}${addUserForm.mobileNumber}`);
+      setAddUserForm({
         email: '',
-        phone_country_code: '91',
-        phone_number: '',
+        mobileCountryCode: '91',
+        mobileNumber: '',
+        password: '',
+        confirmPassword: ''
       });
-      loadUsers();
     } catch (error: any) {
-      alert('Failed to add user');
+      console.error('Error creating user:', error);
+      alert('Failed to create user: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRemoveUser = async (userId: string) => {
-    if (window.confirm('Are you sure you want to remove this user?')) {
-      try {
-        await apiClient.removeShopUser(userId);
-        alert('User removed successfully');
-        loadUsers();
-      } catch (error: any) {
-        alert('Failed to remove user');
-      }
+  const handleResetPassword = async () => {
+    if (!resetPasswordForm.userId || !resetPasswordForm.oldPassword ||
+        !resetPasswordForm.newPassword || !resetPasswordForm.confirmNewPassword) {
+      alert('Please fill all fields');
+      return;
+    }
+
+    if (resetPasswordForm.newPassword !== resetPasswordForm.confirmNewPassword) {
+      alert('New passwords do not match');
+      return;
+    }
+
+    if (resetPasswordForm.newPassword.length < 6) {
+      alert('New password must be at least 6 characters');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await apiClient.resetPassword(resetPasswordForm);
+
+      console.log('Password reset:', response);
+      alert('Password reset successfully!');
+      setResetPasswordForm({
+        userId: '',
+        oldPassword: '',
+        newPassword: '',
+        confirmNewPassword: '',
+      });
+    } catch (error: any) {
+      console.error('Error resetting password:', error);
+      alert('Failed to reset password: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -87,193 +139,408 @@ const ManageUsersScreen = ({ navigation }: any) => {
       width: '100%',
       minHeight: '100vh',
       backgroundColor: '#f5f5f5',
-      padding: '20px',
+      paddingBottom: '50px',
     }}>
-      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-        <h1 style={{
-          fontSize: '24px',
-          fontWeight: 'bold',
-          marginBottom: '20px',
-          color: '#333',
-        }}>
-          Manage Users
-        </h1>
-
-        <div style={{
-          backgroundColor: '#fff',
-          padding: '20px',
-          borderRadius: '8px',
-          marginBottom: '20px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        }}>
-          <h2 style={{
-            fontSize: '18px',
-            fontWeight: 'bold',
-            marginBottom: '15px',
-            color: '#333',
-          }}>
-            Authorized Users
-          </h2>
-
-          {users && users.length > 0 ? (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-              }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f9f9f9', borderBottom: '2px solid #ddd' }}>
-                    <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#333' }}>Name</th>
-                    <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#333' }}>Email</th>
-                    <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#333' }}>Phone</th>
-                    <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: '#333' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user: any) => (
-                    <tr key={user._id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                      <td style={{ padding: '12px', color: '#333' }}>{user.name}</td>
-                      <td style={{ padding: '12px', color: '#333' }}>{user.email}</td>
-                      <td style={{ padding: '12px', color: '#333' }}>
-                        {user.phone_country_code && user.phone_number
-                          ? `+${user.phone_country_code} ${user.phone_number}`
-                          : 'N/A'}
-                      </td>
-                      <td style={{ padding: '12px', textAlign: 'center' }}>
-                        <button
-                          onClick={() => handleRemoveUser(user._id)}
-                          style={{
-                            backgroundColor: '#e74c3c',
-                            color: '#fff',
-                            border: 'none',
-                            padding: '6px 12px',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                          }}
-                        >
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p style={{ color: '#999', textAlign: 'center', padding: '20px' }}>
-              No users added yet
-            </p>
-          )}
-        </div>
-
-        <div style={{
-          backgroundColor: '#fff',
-          padding: '20px',
-          borderRadius: '8px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        }}>
-          <h2 style={{
-            fontSize: '18px',
-            fontWeight: 'bold',
-            marginBottom: '15px',
-            color: '#333',
-          }}>
-            Add New User
-          </h2>
-
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px', color: '#333' }}>
-              Name
-            </label>
-            <input
-              type="text"
-              value={newUser.name}
-              onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-              style={{
-                width: '100%',
-                padding: '10px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px',
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px', color: '#333' }}>
-              Email
-            </label>
-            <input
-              type="email"
-              value={newUser.email}
-              onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-              style={{
-                width: '100%',
-                padding: '10px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px',
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px', color: '#333' }}>
-              Phone Number
-            </label>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <div style={{
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                padding: '10px',
-                backgroundColor: '#f9f9f9',
-              }}>
-                +{newUser.phone_country_code}
-              </div>
-              <input
-                type="tel"
-                placeholder="10-digit number"
-                value={newUser.phone_number}
-                onChange={(e) => setNewUser({ ...newUser, phone_number: e.target.value })}
-                maxLength={10}
-                style={{
-                  flex: 1,
-                  padding: '10px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                }}
-              />
-            </div>
-          </div>
-
+      {/* Header */}
+      <div style={{
+        backgroundColor: '#6C63FF',
+        padding: '20px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <button
-            onClick={handleAddUser}
-            disabled={loading}
+            onClick={() => navigation?.goBack()}
             style={{
-              width: '100%',
-              backgroundColor: '#6C63FF',
-              color: '#fff',
+              backgroundColor: 'transparent',
               border: 'none',
-              padding: '12px',
-              borderRadius: '4px',
+              color: '#fff',
+              fontSize: '24px',
               cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '14px',
-              opacity: loading ? 0.6 : 1,
+              padding: '5px',
             }}
           >
-            {loading ? 'Adding...' : 'Add User'}
+            ←
           </button>
+          <h1 style={{
+            fontSize: '24px',
+            fontWeight: 'bold',
+            color: '#fff',
+            margin: 0,
+          }}>Manage Users</h1>
         </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{
+        backgroundColor: '#fff',
+        margin: '20px',
+        borderRadius: '10px 10px 0 0',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        display: 'flex',
+      }}>
+        <button
+          onClick={() => setActiveTab('add')}
+          style={{
+            flex: 1,
+            padding: '15px',
+            backgroundColor: activeTab === 'add' ? '#6C63FF' : '#fff',
+            color: activeTab === 'add' ? '#fff' : '#666',
+            border: 'none',
+            borderRadius: '10px 0 0 0',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            borderBottom: activeTab === 'add' ? 'none' : '2px solid #eee',
+          }}
+        >
+          Add New User
+        </button>
+        <button
+          onClick={() => setActiveTab('reset')}
+          style={{
+            flex: 1,
+            padding: '15px',
+            backgroundColor: activeTab === 'reset' ? '#6C63FF' : '#fff',
+            color: activeTab === 'reset' ? '#fff' : '#666',
+            border: 'none',
+            borderRadius: '0 10px 0 0',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            borderBottom: activeTab === 'reset' ? 'none' : '2px solid #eee',
+          }}
+        >
+          Reset Password
+        </button>
+      </div>
+
+      {/* Content */}
+      <div style={{
+        backgroundColor: '#fff',
+        margin: '0 20px 20px 20px',
+        padding: '25px',
+        borderRadius: '0 0 10px 10px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      }}>
+        {activeTab === 'add' ? (
+          // Add User Form
+          <div>
+            <h2 style={{
+              fontSize: '20px',
+              fontWeight: 'bold',
+              color: '#333',
+              marginTop: 0,
+              marginBottom: '20px',
+            }}>Create New User Account</h2>
+
+            <p style={{
+              fontSize: '14px',
+              color: '#666',
+              marginBottom: '20px',
+              lineHeight: '1.6',
+            }}>
+              Create a new user account for this shop. The user can login using their mobile number or email as User ID.
+            </p>
+
+            {shopId && (
+              <div style={{
+                backgroundColor: '#f0edff',
+                padding: '15px',
+                borderRadius: '8px',
+                marginBottom: '20px',
+              }}>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#6C63FF',
+                  margin: 0,
+                }}>
+                  <strong>Shop ID:</strong> {shopId}
+                </p>
+              </div>
+            )}
+
+            {/* Email */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#333',
+                marginBottom: '8px',
+              }}>Email Address *</label>
+              <input
+                type="email"
+                value={addUserForm.email}
+                onChange={(e) => setAddUserForm({ ...addUserForm, email: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box',
+                }}
+                placeholder="user@example.com"
+              />
+            </div>
+
+            {/* Mobile Number */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#333',
+                marginBottom: '8px',
+              }}>Mobile Number *</label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <input
+                  type="text"
+                  value={addUserForm.mobileCountryCode}
+                  onChange={(e) => setAddUserForm({ ...addUserForm, mobileCountryCode: e.target.value })}
+                  style={{
+                    width: '80px',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                  }}
+                  placeholder="+91"
+                />
+                <input
+                  type="text"
+                  value={addUserForm.mobileNumber}
+                  onChange={(e) => setAddUserForm({ ...addUserForm, mobileNumber: e.target.value })}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                  }}
+                  placeholder="9876543210"
+                />
+              </div>
+              <small style={{ fontSize: '12px', color: '#666', marginTop: '5px', display: 'block' }}>
+                User ID will be: {addUserForm.mobileCountryCode}{addUserForm.mobileNumber || 'XXXXXXXXXX'}
+              </small>
+            </div>
+
+            {/* Password */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#333',
+                marginBottom: '8px',
+              }}>Password *</label>
+              <input
+                type="password"
+                value={addUserForm.password}
+                onChange={(e) => setAddUserForm({ ...addUserForm, password: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box',
+                }}
+                placeholder="Enter password (min 6 characters)"
+              />
+            </div>
+
+            {/* Confirm Password */}
+            <div style={{ marginBottom: '30px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#333',
+                marginBottom: '8px',
+              }}>Confirm Password *</label>
+              <input
+                type="password"
+                value={addUserForm.confirmPassword}
+                onChange={(e) => setAddUserForm({ ...addUserForm, confirmPassword: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box',
+                }}
+                placeholder="Confirm password"
+              />
+            </div>
+
+            {/* Submit Button */}
+            <button
+              onClick={handleAddUser}
+              disabled={loading}
+              style={{
+                width: '100%',
+                backgroundColor: '#6C63FF',
+                color: '#fff',
+                padding: '14px',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.6 : 1,
+              }}
+            >
+              {loading ? 'Creating User...' : 'Create User'}
+            </button>
+          </div>
+        ) : (
+          // Reset Password Form
+          <div>
+            <h2 style={{
+              fontSize: '20px',
+              fontWeight: 'bold',
+              color: '#333',
+              marginTop: 0,
+              marginBottom: '20px',
+            }}>Reset User Password</h2>
+
+            <p style={{
+              fontSize: '14px',
+              color: '#666',
+              marginBottom: '20px',
+              lineHeight: '1.6',
+            }}>
+              Reset password for an existing user. User ID is the mobile number (country code + number).
+            </p>
+
+            {/* User ID */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#333',
+                marginBottom: '8px',
+              }}>User ID (Mobile Number) *</label>
+              <input
+                type="text"
+                value={resetPasswordForm.userId}
+                onChange={(e) => setResetPasswordForm({ ...resetPasswordForm, userId: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box',
+                }}
+                placeholder="e.g., 919876543210"
+              />
+            </div>
+
+            {/* Old Password */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#333',
+                marginBottom: '8px',
+              }}>Old Password *</label>
+              <input
+                type="password"
+                value={resetPasswordForm.oldPassword}
+                onChange={(e) => setResetPasswordForm({ ...resetPasswordForm, oldPassword: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box',
+                }}
+                placeholder="Enter current password"
+              />
+            </div>
+
+            {/* New Password */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#333',
+                marginBottom: '8px',
+              }}>New Password *</label>
+              <input
+                type="password"
+                value={resetPasswordForm.newPassword}
+                onChange={(e) => setResetPasswordForm({ ...resetPasswordForm, newPassword: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box',
+                }}
+                placeholder="Enter new password (min 6 characters)"
+              />
+            </div>
+
+            {/* Confirm New Password */}
+            <div style={{ marginBottom: '30px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#333',
+                marginBottom: '8px',
+              }}>Confirm New Password *</label>
+              <input
+                type="password"
+                value={resetPasswordForm.confirmNewPassword}
+                onChange={(e) => setResetPasswordForm({ ...resetPasswordForm, confirmNewPassword: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box',
+                }}
+                placeholder="Confirm new password"
+              />
+            </div>
+
+            {/* Submit Button */}
+            <button
+              onClick={handleResetPassword}
+              disabled={loading}
+              style={{
+                width: '100%',
+                backgroundColor: '#6C63FF',
+                color: '#fff',
+                padding: '14px',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.6 : 1,
+              }}
+            >
+              {loading ? 'Resetting Password...' : 'Reset Password'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
-};
-
-export default ManageUsersScreen;
+}
 
