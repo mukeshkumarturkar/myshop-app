@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { setUser } from '../store/authSlice';
+import { RootState } from '../store';
 import { apiClient } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -14,6 +15,7 @@ export default function HomePage({ route, navigation }: any) {
   console.log('🔴🔴🔴 HomePage: Navigation stack:', navigation?.getState());
 
   const dispatch = useDispatch();
+  const user = useSelector((state: RootState) => state.auth.user);
   const [shopData, setShopData] = useState<any>(null);
   const [catalogs, setCatalogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -545,9 +547,33 @@ export default function HomePage({ route, navigation }: any) {
             fontWeight: 'bold',
             color: '#fff',
             margin: 0,
-            marginBottom: '15px',
+            marginBottom: '8px',
             textAlign: 'center',
           }}>{shopData.name || 'My Shop'}</h1>
+
+          {/* Logged In User */}
+          {user?.email && (
+            <div style={{
+              textAlign: 'center',
+              marginBottom: '15px',
+            }}>
+              <div style={{
+                display: 'inline-block',
+                padding: '8px 20px',
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                borderRadius: '20px',
+                backdropFilter: 'blur(10px)',
+              }}>
+                <span style={{
+                  fontSize: '13px',
+                  color: '#fff',
+                  fontWeight: '500',
+                }}>
+                  👤 Logged in as: <strong>{user.email}</strong>
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Shop Details Grid */}
           <div style={{
