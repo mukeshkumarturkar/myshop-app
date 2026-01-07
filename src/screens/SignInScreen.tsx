@@ -60,8 +60,8 @@ const SignInScreen = ({ navigation }: any) => {
       }));
 
       console.log('🔴 SignInScreen: User dispatched to Redux, navigation will happen automatically');
-      alert('Signed in successfully!');
-      // Don't manually navigate - Redux state change (isSignedIn: true) will trigger MainApp display
+      console.log('🔴 SignInScreen: Redux state should now be isSignedIn: true');
+      // Alert removed - navigation happens automatically via Redux state change
     } catch (error: any) {
       console.error('🔴 SignInScreen: PASSWORD MODE - Sign in error:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Sign in failed';

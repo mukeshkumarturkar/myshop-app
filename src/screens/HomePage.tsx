@@ -423,6 +423,22 @@ export default function HomePage({ route, navigation }: any) {
       overflowY: 'auto',
       paddingBottom: '50px',
     }}>
+      {/* DEBUG BANNER - HIGHLY VISIBLE */}
+      <div style={{
+        backgroundColor: '#FF0000',
+        color: '#FFFFFF',
+        padding: '20px',
+        textAlign: 'center',
+        fontSize: '24px',
+        fontWeight: 'bold',
+        borderBottom: '5px solid #000',
+        position: 'sticky',
+        top: 0,
+        zIndex: 9999,
+      }}>
+        ✅ HOMEPAGE LOADED! Shop: {shopData.name} | Catalogs: {catalogs.length}
+      </div>
+
       {/* Header */}
       <div style={{
         backgroundColor: '#6C63FF',
