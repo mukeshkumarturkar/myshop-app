@@ -1,7 +1,0 @@
-web:
-  bundler: metro
-  dev:
-    bundlerConfig:
-      transform.engine: jsc
-      unstable_transformProfile: default
-
