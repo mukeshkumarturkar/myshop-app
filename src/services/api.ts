@@ -213,32 +213,48 @@ class ApiClient {
   }
 
   /**
-   * Create a new shop user account
+   * Create a new shop user account (STAFF or ADMIN)
    * Requires public access token
+   * Matches OpenAPI spec: POST /api/shops/user
    */
   async createUser(data: {
     shopId: string;
-    email: string;
-    mobileCountryCode: string;
-    mobileNumber: string;
     password: string;
     confirmPassword: string;
+    role?: string; // Optional - ADMIN or STAFF (default: STAFF)
+    email?: string; // Optional - if provided, used as userId
+    mobileCountryCode?: string; // Optional - if provided with mobile
+    mobileNumber?: string; // Optional - if provided, combined with countryCode as userId
   }) {
     try {
       console.log('🔴 API Client: Creating user for shop:', data.shopId);
-      console.log('🔴 API Client: User email:', data.email);
-      console.log('🔴 API Client: User mobile:', data.mobileCountryCode + data.mobileNumber);
+      console.log('🔴 API Client: User role:', data.role || 'STAFF (default)');
+      console.log('🔴 API Client: User email:', data.email || 'Using shop email');
+      console.log('🔴 API Client: User mobile:', data.mobileCountryCode && data.mobileNumber
+        ? data.mobileCountryCode + data.mobileNumber
+        : 'Using shop mobile');
 
       const token = await this.getPublicAccessToken();
 
-      const requestBody = {
+      const requestBody: any = {
         shopId: data.shopId,
-        email: data.email,
-        mobileCountryCode: data.mobileCountryCode,
-        mobileNumber: data.mobileNumber,
         password: data.password,
         confirmPassword: data.confirmPassword,
       };
+
+      // Add optional fields only if provided
+      if (data.role) {
+        requestBody.role = data.role;
+      }
+      if (data.email) {
+        requestBody.email = data.email;
+      }
+      if (data.mobileCountryCode) {
+        requestBody.mobileCountryCode = data.mobileCountryCode;
+      }
+      if (data.mobileNumber) {
+        requestBody.mobileNumber = data.mobileNumber;
+      }
 
       console.log('🔴 API Client: Creating user with request body:', JSON.stringify(requestBody, null, 2));
 

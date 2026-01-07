@@ -81,13 +81,14 @@ const SignUpScreen = ({ navigation }: any) => {
       console.log('🔴 SignUpScreen: Step 3 - Creating shop user with public token');
       await apiClient.createUser({
         shopId,
+        role: 'ADMIN', // Shop owner gets ADMIN role
         email: shopSignupData.email,
         mobileCountryCode: shopSignupData.mobileCountryCode,
         mobileNumber: shopSignupData.mobileNumber,
         password: accountData.password,
         confirmPassword: accountData.confirmPassword,
       });
-      console.log('🔴 SignUpScreen: Shop user created successfully');
+      console.log('🔴 SignUpScreen: Shop ADMIN user created successfully');
 
       // Save shop details
       if (shopId) {

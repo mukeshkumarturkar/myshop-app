@@ -9,6 +9,7 @@ export default function ManageUsersScreen({ navigation }: any) {
 
   // Add User Form
   const [addUserForm, setAddUserForm] = useState({
+    role: 'STAFF', // Explicitly set to STAFF for staff users
     email: '',
     mobileCountryCode: '91',
     mobileNumber: '',
@@ -73,6 +74,7 @@ export default function ManageUsersScreen({ navigation }: any) {
       setLoading(true);
       const response = await apiClient.createUser({
         shopId,
+        role: addUserForm.role, // STAFF
         email: addUserForm.email,
         mobileCountryCode: addUserForm.mobileCountryCode,
         mobileNumber: addUserForm.mobileNumber,
@@ -81,8 +83,9 @@ export default function ManageUsersScreen({ navigation }: any) {
       });
 
       console.log('User created:', response);
-      alert(`User created successfully!\nUser ID: ${addUserForm.mobileCountryCode}${addUserForm.mobileNumber}`);
+      alert(`User created successfully!\nUser ID: ${addUserForm.mobileCountryCode}${addUserForm.mobileNumber}\nRole: ${addUserForm.role}`);
       setAddUserForm({
+        role: 'STAFF',
         email: '',
         mobileCountryCode: '91',
         mobileNumber: '',
@@ -231,7 +234,7 @@ export default function ManageUsersScreen({ navigation }: any) {
               color: '#333',
               marginTop: 0,
               marginBottom: '20px',
-            }}>Create New User Account</h2>
+            }}>Create New Staff User</h2>
 
             <p style={{
               fontSize: '14px',
@@ -239,7 +242,8 @@ export default function ManageUsersScreen({ navigation }: any) {
               marginBottom: '20px',
               lineHeight: '1.6',
             }}>
-              Create a new user account for this shop. The user can login using their mobile number or email as User ID.
+              Create a new STAFF user account for this shop. Staff users have limited access for managing catalogs and orders.
+              The user can login using their mobile number or email as User ID.
             </p>
 
             {shopId && (
