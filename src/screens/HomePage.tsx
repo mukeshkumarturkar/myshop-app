@@ -1185,7 +1185,7 @@ export default function HomePage({ route, navigation }: any) {
 
       {/* Bottom Spacing - 3 More Lines */}
       <div style={{
-        height: '90px',
+        height: '150px',
       }}></div>
       </div>
     </div>
