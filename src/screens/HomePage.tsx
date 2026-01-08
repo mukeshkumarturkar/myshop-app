@@ -1181,6 +1181,59 @@ export default function HomePage({ route, navigation }: any) {
           margin: 0,
         }}>✓ Shop loaded successfully</p>
       </div>
+
+      {/* Spacing before footer */}
+      <div style={{ height: '40px' }} />
+
+      {/* Powered By Soanch.com Footer */}
+      <div style={{
+        backgroundColor: '#fff',
+        margin: '0 15px 30px 15px',
+        padding: '20px',
+        borderRadius: '10px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        textAlign: 'center',
+      }}>
+        <p style={{
+          fontSize: '14px',
+          color: '#666',
+          fontWeight: '500',
+          margin: '0 0 8px 0',
+        }}>Powered By</p>
+        <a
+          href="https://soanch.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            fontSize: '24px',
+            fontWeight: 'bold',
+            color: '#6C63FF',
+            textDecoration: 'none',
+            letterSpacing: '0.5px',
+            transition: 'all 0.3s ease',
+            display: 'inline-block',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = '#5548E6';
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = '#6C63FF';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+          Soanch.com
+        </a>
+        <p style={{
+          fontSize: '12px',
+          color: '#999',
+          fontStyle: 'italic',
+          margin: '8px 0 0 0',
+        }}>Your Digital Shop Solution</p>
+      </div>
+
+      {/* Final bottom padding for smooth scrolling */}
+      <div style={{ height: '20px' }} />
       </div>
     </div>
   );
