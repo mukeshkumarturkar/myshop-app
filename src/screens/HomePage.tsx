@@ -456,6 +456,7 @@ export default function HomePage({ route, navigation }: any) {
             🏪 {shopData?.name || 'My Shop'}
           </h1>
 
+
           {/* Menu Button */}
           <button
             onClick={(e) => {
@@ -1182,42 +1183,10 @@ export default function HomePage({ route, navigation }: any) {
         }}>✓ Shop loaded successfully</p>
       </div>
 
-      {/* Bottom Spacing and Footer */}
+      {/* Bottom Spacing - 3 More Lines */}
       <div style={{
-        height: '120px',
+        height: '90px',
       }}></div>
-
-      {/* Powered By Footer */}
-      <div style={{
-        position: 'fixed',
-        bottom: '0',
-        left: '0',
-        right: '0',
-        backgroundColor: '#fff',
-        padding: '16px 20px',
-        textAlign: 'center',
-        borderTop: '1px solid #eee',
-        boxShadow: '0 -2px 8px rgba(0,0,0,0.05)',
-      }}>
-        <a
-          href="https://soanch.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            textDecoration: 'none',
-            color: '#6C63FF',
-            fontWeight: '600',
-            fontSize: '14px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-          }}
-        >
-          <span>🚀 Powered by</span>
-          <span style={{ fontWeight: 'bold', fontSize: '15px' }}>Soanch.com</span>
-        </a>
-      </div>
       </div>
     </div>
   );
