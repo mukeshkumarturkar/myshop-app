@@ -6,6 +6,7 @@ import { apiClient } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getCategoriesForShopType, DEFAULT_CATEGORY } from '../config/categories';
 import { ALL_UNITS, searchUnits, DEFAULT_UNIT } from '../config/units';
+import { uploadImageToAzure, validateImageFile } from '../services/azureStorageHelper';
 
 export default function HomePage({ route, navigation }: any) {
 
@@ -26,6 +27,9 @@ export default function HomePage({ route, navigation }: any) {
   const [customUnit, setCustomUnit] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
   const [catalogCategories, setCatalogCategories] = useState<string[]>([]);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
   const [catalogForm, setCatalogForm] = useState({
     name: '',
     category: '',
@@ -35,6 +39,7 @@ export default function HomePage({ route, navigation }: any) {
     startTime: '09:00',
     endTime: '21:00',
     available: true,
+    imageUrl: '',
   });
 
   useEffect(() => {
@@ -164,23 +169,28 @@ export default function HomePage({ route, navigation }: any) {
   };
 
   const handleAddCatalog = async () => {
-    console.log('🔴 handleAddCatalog: Form values:', catalogForm);
-    console.log('🔴 handleAddCatalog: name:', catalogForm.name, 'empty?', !catalogForm.name);
-    console.log('🔴 handleAddCatalog: category:', catalogForm.category, 'empty?', !catalogForm.category);
-    console.log('🔴 handleAddCatalog: price:', catalogForm.price, 'empty?', !catalogForm.price);
+    console.log('🔵 [AddCatalog] Starting catalog creation...');
+    console.log('📋 [AddCatalog] Form data:', {
+      name: catalogForm.name,
+      category: catalogForm.category,
+      price: catalogForm.price,
+      imageUrl: catalogForm.imageUrl ? `${catalogForm.imageUrl.substring(0, 50)}...` : 'null',
+      unit: catalogForm.unit,
+    });
+
+    if (!catalogForm.name || !catalogForm.category || !catalogForm.price) {
+      console.warn('⚠️ [AddCatalog] Validation failed - missing required fields');
+      window.alert('Please fill in all required fields (Name, Category, Price)');
+      return;
+    }
 
     if (!shopData?.id) {
-      console.error('🔴 handleAddCatalog: No shop ID');
+      console.error('❌ [AddCatalog] No shop ID available');
       window.alert('Error: Shop ID not available');
       return;
     }
 
-    if (!catalogForm.name || !catalogForm.category || !catalogForm.price) {
-      console.error('🔴 handleAddCatalog: Validation failed!');
-      console.error('🔴 Form state:', JSON.stringify(catalogForm, null, 2));
-      window.alert('Please fill in all required fields (Name, Category, Price)');
-      return;
-    }
+    console.log('✅ [AddCatalog] Validation passed');
 
     try {
       const newCatalog = {
@@ -196,9 +206,21 @@ export default function HomePage({ route, navigation }: any) {
           endTime: catalogForm.endTime,
           available: catalogForm.available,
         },
+        imageUrl: catalogForm.imageUrl || null,
       };
 
-      await apiClient.createCatalog(shopData.id, newCatalog);
+      console.log('📦 [AddCatalog] Sending to API:', {
+        ...newCatalog,
+        imageUrl: newCatalog.imageUrl ? `${newCatalog.imageUrl.substring(0, 70)}...` : 'null',
+      });
+
+      const response = await apiClient.createCatalog(shopData.id, newCatalog);
+
+      console.log('✅ [AddCatalog] API response received:', {
+        id: response?.id,
+        name: response?.name,
+        imageUrl: response?.imageUrl ? `${response.imageUrl.substring(0, 70)}...` : 'null',
+      });
 
       // Reset form and reload catalogs
       setCatalogForm({
@@ -210,12 +232,24 @@ export default function HomePage({ route, navigation }: any) {
         startTime: '09:00',
         endTime: '21:00',
         available: true,
+        imageUrl: '',
       });
+      setImagePreview(null);
+      setImageError(null);
       setShowAddCatalog(false);
-      setSelectedCategoryFilter('all'); // Reset filter
+      setSelectedCategoryFilter('all');
+
+      console.log('🔵 [AddCatalog] Reloading catalogs...');
       loadCatalogs(shopData.id);
+
+      console.log('✅ [AddCatalog] Catalog creation completed successfully');
     } catch (error: any) {
-      console.error('Error adding catalog:', error);
+      console.error('❌ [AddCatalog] Error adding catalog:', error);
+      console.error('❌ [AddCatalog] Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
     }
   };
 
@@ -239,12 +273,15 @@ export default function HomePage({ route, navigation }: any) {
           endTime: catalogForm.endTime,
           available: catalogForm.available,
         },
+        imageUrl: catalogForm.imageUrl || null,
       };
 
       await apiClient.updateCatalog(editingCatalog.id, updatedCatalog);
 
       // Reset form and reload catalogs
       setEditingCatalog(null);
+      setImagePreview(null);
+      setImageError(null);
       setCatalogForm({
         name: '',
         category: '',
@@ -254,6 +291,7 @@ export default function HomePage({ route, navigation }: any) {
         startTime: '09:00',
         endTime: '21:00',
         available: true,
+        imageUrl: '',
       });
       setSelectedCategoryFilter('all'); // Reset filter
       loadCatalogs(shopData.id);
@@ -287,12 +325,16 @@ export default function HomePage({ route, navigation }: any) {
       startTime: catalog.availability?.startTime || '09:00',
       endTime: catalog.availability?.endTime || '21:00',
       available: catalog.availability?.available !== false,
+      imageUrl: catalog.imageUrl || '',
     });
+    setImagePreview(catalog.imageUrl || null);
     setShowAddCatalog(false);
   };
 
   const cancelEdit = () => {
     setEditingCatalog(null);
+    setImagePreview(null);
+    setImageError(null);
     setCatalogForm({
       name: '',
       category: '',
@@ -302,6 +344,7 @@ export default function HomePage({ route, navigation }: any) {
       startTime: '09:00',
       endTime: '21:00',
       available: true,
+      imageUrl: '',
     });
   };
 
@@ -335,6 +378,81 @@ export default function HomePage({ route, navigation }: any) {
       return catalogs;
     }
     return catalogs.filter((catalog) => catalog.category === selectedCategoryFilter);
+  };
+
+  // Handle image file selection
+  const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    console.log('🔵 [ImageSelect] Image selection started');
+    console.log('📦 [ImageSelect] File selected:', {
+      name: file?.name,
+      size: file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : 'N/A',
+      type: file?.type,
+    });
+
+    if (!file) {
+      console.log('⚠️ [ImageSelect] No file selected');
+      return;
+    }
+
+    setImageError(null);
+
+    // Validate file
+    console.log('🔵 [ImageSelect] Validating file...');
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      const errorMsg = validation.error || 'Invalid image file';
+      console.error('❌ [ImageSelect] Validation failed:', errorMsg);
+      setImageError(errorMsg);
+      return;
+    }
+
+    console.log('✅ [ImageSelect] File validation passed');
+
+    try {
+      setImageLoading(true);
+      console.log('⏳ [ImageSelect] Loading state set to true');
+
+      // Create preview for UI
+      console.log('🔵 [ImageSelect] Creating image preview...');
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+        console.log('✅ [ImageSelect] Image preview created');
+      };
+      reader.readAsDataURL(file);
+
+      // Upload directly to Azure Blob Storage
+      console.log('🔵 [ImageSelect] Starting Azure Blob Storage upload...');
+      const azureUrl = await uploadImageToAzure(file);
+
+      console.log('✅ [ImageSelect] Azure upload completed successfully');
+      console.log('🔗 [ImageSelect] Azure URL received:', azureUrl);
+
+      // Store Azure URL in form (NOT base64)
+      console.log('🔵 [ImageSelect] Updating form with Azure URL...');
+      setCatalogForm({ ...catalogForm, imageUrl: azureUrl });
+      console.log('✅ [ImageSelect] Form updated with imageUrl:', azureUrl);
+
+      setImageLoading(false);
+      console.log('⏳ [ImageSelect] Loading state set to false');
+    } catch (error) {
+      console.error('❌ [ImageSelect] Error uploading image:', error);
+      const errorMsg = 'Failed to upload image to Azure. Please try again.';
+      setImageError(errorMsg);
+      setImageLoading(false);
+      console.log('⏳ [ImageSelect] Loading state set to false (on error)');
+    }
+  };
+
+  // Clear image selection
+  const clearImage = () => {
+    console.log('🔵 [ImageClear] Clearing image selection...');
+    setImagePreview(null);
+    setImageError(null);
+    setCatalogForm({ ...catalogForm, imageUrl: '' });
+    console.log('✅ [ImageClear] Image cleared from form');
   };
 
   const handleShareQR = async () => {
@@ -931,6 +1049,153 @@ export default function HomePage({ route, navigation }: any) {
               </div>
             </div>
 
+            {/* Image Upload Section */}
+            <div style={{
+              marginTop: '24px',
+              padding: '16px',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '8px',
+              border: '2px dashed #6C63FF',
+            }}>
+              <label style={{
+                fontSize: '14px',
+                color: '#333',
+                display: 'block',
+                marginBottom: '12px',
+                fontWeight: '600',
+              }}>
+                📸 Product Image (Optional)
+              </label>
+
+              {/* Image Preview */}
+              {imagePreview && (
+                <div style={{
+                  marginBottom: '16px',
+                  position: 'relative',
+                }}>
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '250px',
+                      borderRadius: '8px',
+                      objectFit: 'cover',
+                    }}
+                  />
+                  <button
+                    onClick={clearImage}
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      backgroundColor: '#f44336',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '32px',
+                      height: '32px',
+                      cursor: 'pointer',
+                      fontSize: '18px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+
+              {/* Error Message */}
+              {imageError && (
+                <div style={{
+                  backgroundColor: '#ffebee',
+                  border: '1px solid #ef5350',
+                  borderRadius: '4px',
+                  padding: '12px',
+                  marginBottom: '12px',
+                  fontSize: '14px',
+                  color: '#c62828',
+                }}>
+                  ⚠️ {imageError}
+                </div>
+              )}
+
+              {/* File Input */}
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                flexWrap: 'wrap',
+              }}>
+                <label
+                  style={{
+                    flex: 1,
+                    minWidth: '150px',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                  }}
+                >
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    disabled={imageLoading}
+                    style={{
+                      display: 'none',
+                    }}
+                  />
+                  <div
+                    style={{
+                      backgroundColor: '#6C63FF',
+                      color: '#fff',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: imageLoading ? 'not-allowed' : 'pointer',
+                      opacity: imageLoading ? 0.7 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    {imageLoading ? '⏳ Processing...' : '🖼️ Select Image'}
+                  </div>
+                </label>
+
+                {imagePreview && !imageLoading && (
+                  <div
+                    style={{
+                      flex: 1,
+                      minWidth: '150px',
+                      fontSize: '12px',
+                      color: '#666',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: '#fff',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '1px solid #ddd',
+                    }}
+                  >
+                    ✓ Image selected
+                  </div>
+                )}
+              </div>
+
+              <p style={{
+                fontSize: '12px',
+                color: '#999',
+                marginTop: '8px',
+                marginBottom: 0,
+              }}>
+                Supported: JPG, PNG, WebP | Max size: 5MB
+              </p>
+            </div>
+
             {/* Action Buttons - Full Width on Mobile */}
             <div style={{
               display: 'flex',
@@ -1113,11 +1378,36 @@ export default function HomePage({ route, navigation }: any) {
                           border: '1px solid #e0e0e0',
                           display: 'flex',
                           justifyContent: 'space-between',
-                          alignItems: 'center',
+                          alignItems: 'flex-start',
+                          gap: '15px',
                         }}
                       >
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
+                        {/* Product Image */}
+                        {catalog.imageUrl && (
+                          <div
+                            style={{
+                              flexShrink: 0,
+                              width: '80px',
+                              height: '80px',
+                              borderRadius: '8px',
+                              overflow: 'hidden',
+                              backgroundColor: '#e0e0e0',
+                            }}
+                          >
+                            <img
+                              src={catalog.imageUrl}
+                              alt={catalog.name}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px', flexWrap: 'wrap' }}>
                             <h4 style={{
                               fontSize: '16px',
                               fontWeight: 'bold',
@@ -1130,6 +1420,7 @@ export default function HomePage({ route, navigation }: any) {
                               backgroundColor: '#e8eaff',
                               padding: '2px 8px',
                               borderRadius: '12px',
+                              whiteSpace: 'nowrap',
                             }}>{catalog.category}</span>
                           </div>
                           <div style={{ display: 'flex', gap: '15px', fontSize: '13px', color: '#666', flexWrap: 'wrap' }}>

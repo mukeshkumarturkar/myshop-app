@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Shop } from '../../types';
+import { Shop } from '../types';
 
 interface ShopState {
   currentShop: Shop | null;

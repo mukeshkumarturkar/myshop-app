@@ -2,50 +2,49 @@ openapi: 3.0.3
 info:
   title: MyShop Catalogue Service API
   description: |
-    Complete REST API for Shop and Catalog management with authentication, QR code generation, and menu access.
+    REST API for Shop Management and Catalog with Authentication, QR Code Generation, and Menu Access.
     
-    ## User Management
+    ## Quick Start
     
-    ### Unified User System
-    All users (both shop owners and staff) are stored in the same `shop_user` collection with role-based access:
-    - **ADMIN**: Shop owner with full CRUD access (created automatically during shop registration)
-    - **STAFF**: Support staff with limited access (created via `/api/shops/user`)
+    ### 1. Get Public Access Token (Read-Only, No Login Required)
+    ```
+    POST /api/shops/auth
+    Body: {}
+    ```
+    Returns: `publicAccessToken` (valid 7 days)
     
-    ### User Authentication
-    Users can authenticate using either:
-    - **Mobile Number**: countryCode + mobileNumber (e.g., 919876543210)
-    - **Email**: email address associated with the user
+    ### 2. Create a Shop (Public)
+    ```
+    POST /api/shops
+    ```
+    Automatically generates ADMIN user if password provided and creates QR code
     
-    ## Authentication Flow
+    ### 3. Login with Credentials (Full CRUD Access)
+    ```
+    POST /api/shops/auth
+    Body: {
+      "userId": "email@example.com or 919876543210",
+      "password": "yourpassword"
+    }
+    ```
+    Returns: `oauthToken` (valid 90 days)
     
-    ### Public Access (No Login Required)
-    1. Get public token: `POST /api/shops/auth` with empty body `{}`
-    2. Use `publicAccessToken` for read-only access (valid 7 days)
+    ## Key Features
+    - ✅ Complete Shop CRUD with search capabilities
+    - ✅ Catalog management (create, update, delete items)
+    - ✅ Unified user system (ADMIN/STAFF roles)
+    - ✅ QR code generation & retrieval
+    - ✅ Shop menu with today's prices
+    - ✅ Flexible authentication (mobile + email as userId)
+    - ✅ Image support for catalog items (Azure Blob Storage)
+    - ✅ Availability scheduling
+    - ✅ Price and discount management
+    - ✅ Stock tracking
     
-    ### Shop Owner/Staff Access (Full CRUD)
-    1. **Option A - During Shop Creation:**
-       - Create shop with password: `POST /api/shops` (includes password field)
-       - ADMIN user is created automatically with shop's email/mobile as userId
-    
-    2. **Option B - Manual User Creation:**
-       - Create user: `POST /api/shops/user` (specify role: ADMIN or STAFF)
-       - Optionally provide email/mobile, or use shop's defaults
-    
-    3. **Login:**
-       - `POST /api/shops/auth` with userId (email or mobile) & password
-       - Both email and mobile can be used as userId for authentication
-       - Receive `oauthToken` for protected operations (valid 90 days)
-    
-    ## Public Endpoints (Public Token)
-    - All GET endpoints for shops and catalogs
-    - Shop menu: `GET /api/shops/{id}/menus`
-    - Create shop: `POST /api/shops`
-    - Create user: `POST /api/shops/user`
-    
-    ## Protected Endpoints (OAuth Token)
-    - All PUT/DELETE operations
-    - POST catalog items
-    - Generate QR codes
+    ## Collections
+    - **shops**: Store shop information, theme, QR codes
+    - **catalogs**: Catalog items with prices, availability, images
+    - **shop_users**: Unified user system (ADMIN/STAFF)
 
   version: 2.0.0
   contact:
@@ -111,6 +110,22 @@ components:
         mobileNumber:
           type: string
           example: "9876543210"
+        shopType:
+          type: string
+          description: Type of shop/business
+          enum:
+            - RESTAURANT
+            - VEGETABLE_SHOP
+            - GENERAL_STORE
+            - CHICKEN_SHOP
+            - BAKERY
+            - PHARMACY
+            - ELECTRONICS
+            - CLOTHING
+            - CAFE
+            - SUPERMARKET
+            - OTHER
+          example: "RESTAURANT"
         theme:
           type: object
           additionalProperties: true
@@ -156,6 +171,22 @@ components:
           type: string
           description: Mobile number (without country code) - can be used as userId
           example: "9876543210"
+        shopType:
+          type: string
+          description: Type of shop/business (optional)
+          enum:
+            - RESTAURANT
+            - VEGETABLE_SHOP
+            - GENERAL_STORE
+            - CHICKEN_SHOP
+            - BAKERY
+            - PHARMACY
+            - ELECTRONICS
+            - CLOTHING
+            - CAFE
+            - SUPERMARKET
+            - OTHER
+          example: "RESTAURANT"
         password:
           type: string
           format: password
@@ -195,6 +226,11 @@ components:
               type: number
               format: double
               example: 299.00
+        imageUrl:
+          type: string
+          format: url
+          description: Public URL of product image stored in Azure Blob Storage
+          example: "https://myshopstg.blob.core.windows.net/catalogs/margherita-pizza-001.jpg"
         availability:
           type: object
           properties:
@@ -249,6 +285,10 @@ components:
           type: string
         mobileNumber:
           type: string
+        shopType:
+          type: string
+          description: Type of shop/business
+          example: "RESTAURANT"
         qrCodeUrl:
           type: string
         theme:
@@ -477,6 +517,7 @@ paths:
                   email: "shop@pizzapalace.com"
                   mobileCountryCode: "91"
                   mobileNumber: "9876543210"
+                  shopType: "RESTAURANT"
                   password: "SecurePass123!"
                   theme:
                     colors:
@@ -484,12 +525,24 @@ paths:
                       secondary: "#FFFFFF"
                     menu: "Italian pizza and pasta"
                     lookAndFeel: "Modern and cozy"
-              withoutPassword:
-                summary: Create shop without user (legacy)
+              vegetableShop:
+                summary: Create vegetable shop
+                value:
+                  name: "Fresh Veggies"
+                  address: "789 Market St"
+                  owner: "Raj Kumar"
+                  email: "fresh@veggies.com"
+                  mobileCountryCode: "91"
+                  mobileNumber: "9988776655"
+                  shopType: "VEGETABLE_SHOP"
+                  password: "VeggiePass123!"
+              generalStore:
+                summary: Create general store
                 value:
                   name: "Quick Mart"
                   address: "456 Oak Ave"
                   owner: "Jane Smith"
+                  shopType: "GENERAL_STORE"
                   theme: {}
       responses:
         '201':
@@ -506,6 +559,7 @@ paths:
                 email: "shop@pizzapalace.com"
                 mobileCountryCode: "91"
                 mobileNumber: "9876543210"
+                shopType: "RESTAURANT"
                 theme:
                   colors:
                     primary: "#FF6B6B"
@@ -569,7 +623,10 @@ paths:
       tags:
         - Shops
       summary: Update shop
-      description: Update shop details (partial or full update)
+      description: |
+        Update shop details (partial or full update).
+        Only provided fields will be updated. Null fields are ignored.
+        Can update: name, address, owner, email, mobile, shopType, theme
       operationId: updateShop
       security:
         - OAuthToken: []
@@ -579,12 +636,36 @@ paths:
           required: true
           schema:
             type: string
+          example: "695e0cad6e2eb16bf7b62169"
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/Shop'
+            examples:
+              updateAll:
+                summary: Update all fields
+                value:
+                  name: "Mukesh Bhaji Wala"
+                  address: "Rahatani Corner"
+                  owner: "Mukesh"
+                  email: "mktgs23@gmail.com"
+                  mobileCountryCode: "91"
+                  mobileNumber: "8087047070"
+                  shopType: "VEGETABLE_SHOP"
+                  theme: {}
+              updateNameAndType:
+                summary: Update only name and shopType
+                value:
+                  name: "Fresh Vegetables"
+                  shopType: "VEGETABLE_SHOP"
+              updateContact:
+                summary: Update only contact info
+                value:
+                  email: "newemail@shop.com"
+                  mobileCountryCode: "91"
+                  mobileNumber: "9999999999"
       responses:
         '200':
           description: Shop updated successfully
@@ -592,8 +673,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Shop'
+              example:
+                id: "695e0cad6e2eb16bf7b62169"
+                name: "Mukesh Bhaji Wala"
+                address: "Rahatani Corner"
+                owner: "Mukesh"
+                email: "mktgs23@gmail.com"
+                mobileCountryCode: "91"
+                mobileNumber: "8087047070"
+                shopType: "VEGETABLE_SHOP"
+                theme: {}
+                qrCode: "data:image/png;base64,..."
+                qrCodeUrl: "https://myshop.soanch.com/web-menu?shopid=695e0cad6e2eb16bf7b62169"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: "error"
+                message: "Error updating shop"
+                details: "Invalid shop data"
         '404':
           description: Shop not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: "error"
+                message: "Shop not found"
+                details: "No shop found with ID: 695e0cad6e2eb16bf7b62169"
 
     delete:
       tags:
@@ -692,6 +803,55 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Shop'
+
+  /api/shops/search/type:
+    get:
+      tags:
+        - Shops
+      summary: Search shops by shop type
+      description: Find shops by business type (e.g., RESTAURANT, VEGETABLE_SHOP, GENERAL_STORE)
+      operationId: getShopsByShopType
+      security:
+        - PublicToken: []
+      parameters:
+        - name: shopType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - RESTAURANT
+              - VEGETABLE_SHOP
+              - GENERAL_STORE
+              - CHICKEN_SHOP
+              - BAKERY
+              - PHARMACY
+              - ELECTRONICS
+              - CLOTHING
+              - CAFE
+              - SUPERMARKET
+              - OTHER
+          example: "RESTAURANT"
+      responses:
+        '200':
+          description: List of matching shops
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Shop'
+              example:
+                - id: "shop001"
+                  name: "Pizza Palace"
+                  shopType: "RESTAURANT"
+                  address: "123 Main St"
+                  owner: "John Doe"
+                - id: "shop002"
+                  name: "Burger King"
+                  shopType: "RESTAURANT"
+                  address: "456 Oak Ave"
+                  owner: "Jane Smith"
 
   # ==================== AUTHENTICATION ENDPOINTS ====================
 
@@ -979,6 +1139,7 @@ paths:
                 email: "shop@pizzapalace.com"
                 mobileCountryCode: "91"
                 mobileNumber: "9876543210"
+                shopType: "RESTAURANT"
                 qrCodeUrl: "https://myshop.soanch.com/web-menu?shopid=695d580b2e5090098478fc26"
                 theme:
                   colors:

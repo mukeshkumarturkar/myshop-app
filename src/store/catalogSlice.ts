@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Catalog } from '../../types';
+import { Catalog } from '../types';
 
 interface CatalogState {
   catalogs: Catalog[];

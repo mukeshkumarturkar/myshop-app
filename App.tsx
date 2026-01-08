@@ -4,6 +4,7 @@ import store from './src/store';
 import RootNavigator from './src/navigation/RootNavigator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setUser } from './src/store/authSlice';
+import { initializeAzureStorage } from './src/services/azureStorageHelper';
 
 console.log('🔴 App.tsx: App module loaded');
 
@@ -42,6 +43,40 @@ const initializeAuth = async () => {
 
 // Run auth initialization immediately
 initializeAuth();
+
+// Initialize Azure Blob Storage with config from environment variables
+const initializeAzure = () => {
+  console.log('🔵 [App Init] Starting Azure Blob Storage initialization...');
+
+  const containerUrl = process.env.EXPO_PUBLIC_AZURE_CONTAINER_URL;
+  const sasToken = process.env.EXPO_PUBLIC_AZURE_SAS_TOKEN;
+
+  console.log('📋 [App Init] Environment variables check:', {
+    containerUrlPresent: !!containerUrl,
+    containerUrl: containerUrl ? `${containerUrl.substring(0, 50)}...` : 'NOT SET',
+    sasTokenPresent: !!sasToken,
+    sasTokenLength: sasToken?.length || 0,
+  });
+
+  if (containerUrl && sasToken) {
+    try {
+      initializeAzureStorage({
+        containerUrl,
+        sasToken,
+      });
+      console.log('✅ [App Init] Azure Blob Storage initialized successfully');
+    } catch (error) {
+      console.error('❌ [App Init] Error initializing Azure:', error);
+    }
+  } else {
+    console.warn('⚠️ [App Init] Azure configuration incomplete:');
+    if (!containerUrl) console.warn('  - EXPO_PUBLIC_AZURE_CONTAINER_URL is not set');
+    if (!sasToken) console.warn('  - EXPO_PUBLIC_AZURE_SAS_TOKEN is not set');
+    console.warn('⚠️ [App Init] Image upload will not work without these environment variables');
+  }
+};
+
+initializeAzure();
 
 export default function App() {
   console.log('🔴 App.tsx: App component rendering');
