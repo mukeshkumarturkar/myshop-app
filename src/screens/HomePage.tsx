@@ -24,6 +24,8 @@ export default function HomePage({ route, navigation }: any) {
   const [filteredUnits, setFilteredUnits] = useState<readonly string[]>(ALL_UNITS);
   const [showUnitDropdown, setShowUnitDropdown] = useState(false);
   const [customUnit, setCustomUnit] = useState('');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
+  const [catalogCategories, setCatalogCategories] = useState<string[]>([]);
   const [catalogForm, setCatalogForm] = useState({
     name: '',
     category: '',
@@ -123,14 +125,22 @@ export default function HomePage({ route, navigation }: any) {
       // Handle empty object {} or array response
       if (Array.isArray(catalogsData)) {
         setCatalogs(catalogsData);
+        // Extract unique categories from catalogs
+        const uniqueCategories = extractCategoriesFromCatalogs(catalogsData);
+        setCatalogCategories(uniqueCategories);
+        setSelectedCategoryFilter('all'); // Reset filter
         setCatalogError(null);
       } else if (catalogsData && typeof catalogsData === 'object' && Object.keys(catalogsData).length === 0) {
         // Empty object {} - no catalogs
         setCatalogs([]);
+        setCatalogCategories([]);
+        setSelectedCategoryFilter('all');
         setCatalogError('No catalogs found for this shop yet. Click "Add Catalog" to create your first item!');
       } else {
         // Unexpected response
         setCatalogs([]);
+        setCatalogCategories([]);
+        setSelectedCategoryFilter('all');
         setCatalogError('No catalogs found for this shop yet. Click "Add Catalog" to create your first item!');
       }
     } catch (error: any) {
@@ -146,6 +156,8 @@ export default function HomePage({ route, navigation }: any) {
       }
 
       setCatalogs([]); // Set empty array so the rest of the page works
+      setCatalogCategories([]);
+      setSelectedCategoryFilter('all');
     } finally {
       setCatalogsLoading(false);
     }
@@ -200,6 +212,7 @@ export default function HomePage({ route, navigation }: any) {
         available: true,
       });
       setShowAddCatalog(false);
+      setSelectedCategoryFilter('all'); // Reset filter
       loadCatalogs(shopData.id);
     } catch (error: any) {
       console.error('Error adding catalog:', error);
@@ -242,6 +255,7 @@ export default function HomePage({ route, navigation }: any) {
         endTime: '21:00',
         available: true,
       });
+      setSelectedCategoryFilter('all'); // Reset filter
       loadCatalogs(shopData.id);
     } catch (error: any) {
       console.error('Error updating catalog:', error);
@@ -255,6 +269,7 @@ export default function HomePage({ route, navigation }: any) {
 
     try {
       await apiClient.deleteCatalog(catalogId);
+      setSelectedCategoryFilter('all'); // Reset filter
       loadCatalogs(shopData.id);
     } catch (error: any) {
       console.error('Error deleting catalog:', error);
@@ -288,6 +303,38 @@ export default function HomePage({ route, navigation }: any) {
       endTime: '21:00',
       available: true,
     });
+  };
+
+  // Extract unique categories from catalogs
+  const extractCategoriesFromCatalogs = (catalogList: any[]) => {
+    const categories = new Set<string>();
+    catalogList.forEach((catalog) => {
+      if (catalog.category) {
+        categories.add(catalog.category);
+      }
+    });
+    return Array.from(categories).sort();
+  };
+
+  // Group catalogs by category
+  const groupCatalogsByCategory = (catalogList: any[]) => {
+    const grouped: { [key: string]: any[] } = {};
+    catalogList.forEach((catalog) => {
+      const category = catalog.category || 'Uncategorized';
+      if (!grouped[category]) {
+        grouped[category] = [];
+      }
+      grouped[category].push(catalog);
+    });
+    return grouped;
+  };
+
+  // Filter catalogs based on selected category
+  const getFilteredCatalogs = () => {
+    if (selectedCategoryFilter === 'all') {
+      return catalogs;
+    }
+    return catalogs.filter((catalog) => catalog.category === selectedCategoryFilter);
   };
 
   const handleShareQR = async () => {
@@ -964,82 +1011,177 @@ export default function HomePage({ route, navigation }: any) {
             {catalogError ? 'Ready to add your first catalog item!' : 'No catalog items yet. Click "Add Catalog" to create your first item!'}
           </p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {catalogs.map((catalog: any, index: number) => (
-              <div
-                key={catalog.id || index}
-                style={{
-                  backgroundColor: '#f8f9fa',
-                  padding: '15px',
-                  borderRadius: '8px',
-                  border: '1px solid #e0e0e0',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
-                    <h4 style={{
-                      fontSize: '16px',
-                      fontWeight: 'bold',
-                      color: '#333',
-                      margin: 0,
-                    }}>{catalog.name}</h4>
-                    <span style={{
-                      fontSize: '12px',
-                      color: '#6C63FF',
-                      backgroundColor: '#e8eaff',
-                      padding: '2px 8px',
-                      borderRadius: '12px',
-                    }}>{catalog.category}</span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '15px', fontSize: '13px', color: '#666' }}>
-                    <span style={{ fontWeight: 'bold', color: '#333' }}>
-                      {catalog.price?.currency === 'INR' ? '₹' : catalog.price?.currency === 'USD' ? '$' : '€'}
-                      {catalog.price?.value}
-                    </span>
-                    <span>Unit: {catalog.unit || 'N/A'}</span>
-                    {catalog.availability && (
-                      <span>⏰ {catalog.availability.startTime} - {catalog.availability.endTime}</span>
-                    )}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={() => startEditCatalog(catalog)}
-                    style={{
-                      backgroundColor: '#4CAF50',
-                      color: '#fff',
-                      padding: '6px 12px',
-                      border: 'none',
-                      borderRadius: '4px',
-                      fontSize: '12px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    ✏️ Edit
-                  </button>
-                  <button
-                    onClick={() => handleDeleteCatalog(catalog.id, catalog.name)}
-                    style={{
-                      backgroundColor: '#f44336',
-                      color: '#fff',
-                      padding: '6px 12px',
-                      border: 'none',
-                      borderRadius: '4px',
-                      fontSize: '12px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    🗑️ Delete
-                  </button>
-                </div>
+          <>
+            {/* Category Filter Tabs */}
+            {catalogCategories.length > 0 && (
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                marginBottom: '16px',
+                overflowX: 'auto',
+                paddingBottom: '8px',
+                WebkitOverflowScrolling: 'touch',
+              }}>
+                <button
+                  onClick={() => setSelectedCategoryFilter('all')}
+                  style={{
+                    padding: '8px 16px',
+                    border: selectedCategoryFilter === 'all' ? '2px solid #6C63FF' : '1px solid #ddd',
+                    borderRadius: '20px',
+                    backgroundColor: selectedCategoryFilter === 'all' ? '#6C63FF' : '#fff',
+                    color: selectedCategoryFilter === 'all' ? '#fff' : '#333',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (selectedCategoryFilter !== 'all') {
+                      e.currentTarget.style.borderColor = '#6C63FF';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedCategoryFilter !== 'all') {
+                      e.currentTarget.style.borderColor = '#ddd';
+                    }
+                  }}
+                >
+                  All ({catalogs.length})
+                </button>
+                {catalogCategories.map((category) => {
+                  const categoryCount = catalogs.filter(c => c.category === category).length;
+                  return (
+                    <button
+                      key={category}
+                      onClick={() => setSelectedCategoryFilter(category)}
+                      style={{
+                        padding: '8px 16px',
+                        border: selectedCategoryFilter === category ? '2px solid #6C63FF' : '1px solid #ddd',
+                        borderRadius: '20px',
+                        backgroundColor: selectedCategoryFilter === category ? '#6C63FF' : '#fff',
+                        color: selectedCategoryFilter === category ? '#fff' : '#333',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.3s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (selectedCategoryFilter !== category) {
+                          e.currentTarget.style.borderColor = '#6C63FF';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (selectedCategoryFilter !== category) {
+                          e.currentTarget.style.borderColor = '#ddd';
+                        }
+                      }}
+                    >
+                      {category} ({categoryCount})
+                    </button>
+                  );
+                })}
               </div>
-            ))}
-          </div>
+            )}
+
+            {/* Grouped Catalogs by Category */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {Object.entries(groupCatalogsByCategory(getFilteredCatalogs())).map(([category, categoryItems]) => (
+                <div key={category}>
+                  {/* Category Header */}
+                  <h3 style={{
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    color: '#6C63FF',
+                    margin: '0 0 12px 0',
+                    paddingBottom: '8px',
+                    borderBottom: '2px solid #e8eaff',
+                  }}>
+                    {category}
+                  </h3>
+
+                  {/* Category Items */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {(categoryItems as any[]).map((catalog: any, index: number) => (
+                      <div
+                        key={catalog.id || index}
+                        style={{
+                          backgroundColor: '#f8f9fa',
+                          padding: '15px',
+                          borderRadius: '8px',
+                          border: '1px solid #e0e0e0',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
+                            <h4 style={{
+                              fontSize: '16px',
+                              fontWeight: 'bold',
+                              color: '#333',
+                              margin: 0,
+                            }}>{catalog.name}</h4>
+                            <span style={{
+                              fontSize: '12px',
+                              color: '#6C63FF',
+                              backgroundColor: '#e8eaff',
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                            }}>{catalog.category}</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: '15px', fontSize: '13px', color: '#666', flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 'bold', color: '#333' }}>
+                              {catalog.price?.currency === 'INR' ? '₹' : catalog.price?.currency === 'USD' ? '$' : '€'}
+                              {catalog.price?.value}
+                            </span>
+                            <span>Unit: {catalog.unit || 'N/A'}</span>
+                            {catalog.availability && (
+                              <span>⏰ {catalog.availability.startTime} - {catalog.availability.endTime}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                          <button
+                            onClick={() => startEditCatalog(catalog)}
+                            style={{
+                              backgroundColor: '#4CAF50',
+                              color: '#fff',
+                              padding: '6px 12px',
+                              border: 'none',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCatalog(catalog.id, catalog.name)}
+                            style={{
+                              backgroundColor: '#f44336',
+                              color: '#fff',
+                              padding: '6px 12px',
+                              border: 'none',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
