@@ -88,6 +88,24 @@ export default function HomePage({ route, navigation }: any) {
     }
   }, [shopData]);
 
+  // Set categories whenever shopData changes
+  useEffect(() => {
+    if (shopData) {
+      console.log('🔵 [Categories] Shop data received:', {
+        id: shopData.id,
+        name: shopData.name,
+        shopType: shopData.shopType,
+        shopTypeType: typeof shopData.shopType,
+      });
+      const shopType = shopData.shopType || 'VEGETABLE_SHOP';
+      console.log('🔵 [Categories] Setting categories for shop type:', shopType);
+      const categories = getCategoriesForShopType(shopType);
+      console.log('🔵 [Categories] Available categories count:', categories.length);
+      console.log('🔵 [Categories] First 5 categories:', categories.slice(0, 5));
+      setAvailableCategories(categories);
+    }
+  }, [shopData]);
+
   const loadShopData = async () => {
     try {
       // First check if we got shop data from params
@@ -108,9 +126,6 @@ export default function HomePage({ route, navigation }: any) {
         const shop = await apiClient.getShop(shopId);
         setShopData(shop);
 
-        // Load categories based on shop type
-        const categories = getCategoriesForShopType(shop.shopType || 'VEGETABLE_SHOP');
-        setAvailableCategories(categories);
 
         // Catalogs will be loaded separately by useEffect watching shopData
       }

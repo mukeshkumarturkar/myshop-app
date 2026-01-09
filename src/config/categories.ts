@@ -135,8 +135,18 @@ export type ShopCategory =
 
 // Helper function to get categories for a shop type
 export const getCategoriesForShopType = (shopType: string): readonly string[] => {
+  console.log('🔍 [getCategoriesForShopType] Input shopType:', shopType);
+  console.log('🔍 [getCategoriesForShopType] Available keys in map:', Object.keys(SHOP_CATEGORIES_MAP));
+
   const categories = SHOP_CATEGORIES_MAP[shopType as keyof typeof SHOP_CATEGORIES_MAP];
-  return categories || VEGETABLE_SHOP_CATEGORIES;
+
+  if (categories) {
+    console.log('✅ [getCategoriesForShopType] Found categories for', shopType, ':', categories.length, 'items');
+    return categories;
+  } else {
+    console.warn('⚠️ [getCategoriesForShopType] No categories found for', shopType, ', using default VEGETABLE_SHOP_CATEGORIES');
+    return VEGETABLE_SHOP_CATEGORIES;
+  }
 };
 
 // Helper function to check if a category exists for a shop type
